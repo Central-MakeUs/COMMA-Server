@@ -1,0 +1,17 @@
+.git
+.gradle
+build
+out
+bin
+
+# IDE settings
+.idea
+*.iml
+.vscode
+
+# Environment & Logs
+.env
+*.log
+
+# OS files
+.DS_Store
