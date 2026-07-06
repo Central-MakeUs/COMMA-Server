@@ -1,3 +1,19 @@
 spring:
   application:
     name: COMMA
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 3600000      # 1시간 (3,600초)
+  refresh-token-expiration: 1209600000  # 2주 (1,209,600초)
+
+kakao:
+  client-id: ${KAKAO_CLIENT_ID}
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+  client-secret: ${GOOGLE_CLIENT_SECRET}

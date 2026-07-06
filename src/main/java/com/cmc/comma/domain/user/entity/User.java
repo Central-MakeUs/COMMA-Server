@@ -33,8 +33,6 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     private String nickname;
 
-    private String profileImageUrl;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Provider provider;
@@ -56,8 +54,7 @@ public class User extends BaseTimeEntity {
         this.onboardingCompleted = true;
     }
 
-    public void updateProfile(String nickname, String profileImageUrl) {
+    public void updateProfile(String nickname) {
         if (nickname != null) this.nickname = nickname;
-        if (profileImageUrl != null) this.profileImageUrl = profileImageUrl;
     }
 }
