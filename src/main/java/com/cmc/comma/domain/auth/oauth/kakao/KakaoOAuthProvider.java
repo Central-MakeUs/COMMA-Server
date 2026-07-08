@@ -5,7 +5,6 @@ import com.cmc.comma.domain.auth.oauth.OAuthUserInfo;
 import com.cmc.comma.domain.auth.oauth.kakao.dto.KakaoTokenResponse;
 import com.cmc.comma.domain.auth.oauth.kakao.dto.KakaoUserInfoResponse;
 import com.cmc.comma.domain.user.entity.Provider;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -14,7 +13,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
-@Slf4j
 @Component
 public class KakaoOAuthProvider implements OAuthProvider {
 
@@ -38,7 +36,6 @@ public class KakaoOAuthProvider implements OAuthProvider {
     }
 
     private String getAccessToken(String code, String redirectUri) {
-        log.info("[KAKAO] 프론트에서 받은 redirect_uri = [{}]", redirectUri);
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", "authorization_code");
         params.add("client_id", clientId);

@@ -5,7 +5,6 @@ import com.cmc.comma.domain.auth.oauth.OAuthUserInfo;
 import com.cmc.comma.domain.auth.oauth.google.dto.GoogleTokenResponse;
 import com.cmc.comma.domain.auth.oauth.google.dto.GoogleUserInfoResponse;
 import com.cmc.comma.domain.user.entity.Provider;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -14,7 +13,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
-@Slf4j
 @Component
 public class GoogleOAuthProvider implements OAuthProvider {
 
@@ -41,7 +39,6 @@ public class GoogleOAuthProvider implements OAuthProvider {
     }
 
     private String getAccessToken(String code, String redirectUri) {
-        log.info("[GOOGLE] code = [{}], redirect_uri = [{}]", code, redirectUri);
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", "authorization_code");
         params.add("client_id", clientId);

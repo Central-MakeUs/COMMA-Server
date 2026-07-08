@@ -11,6 +11,7 @@ import com.cmc.comma.global.exception.CommaException;
 import com.cmc.comma.global.exception.ErrorCode;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -54,7 +55,8 @@ public class AuthService {
                                 .email(userInfo.email())
                                 .provider(userInfo.provider())
                                 .providerId(userInfo.providerId())
-                                .nickname("")
+                                // 온보딩 전까지 쓸 임시 유니크 placeholder (유저에게 노출되지 않음)
+                                .nickname("temp_" + UUID.randomUUID())
                                 .build()
                 ));
     }
