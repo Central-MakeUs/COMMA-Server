@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -48,6 +49,12 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false)
     @Builder.Default
     private boolean onboardingCompleted = false;
+
+    private LocalDateTime lastActiveAt;
+
+    public void updateLastActive() {
+        this.lastActiveAt = LocalDateTime.now();
+    }
 
     public void completeOnboarding(String nickname) {
         this.nickname = nickname;
