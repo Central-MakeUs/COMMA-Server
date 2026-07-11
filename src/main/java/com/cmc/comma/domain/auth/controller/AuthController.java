@@ -1,6 +1,7 @@
 package com.cmc.comma.domain.auth.controller;
 
 import com.cmc.comma.domain.auth.dto.request.LoginRequest;
+import com.cmc.comma.domain.auth.dto.request.ReissueRequest;
 import com.cmc.comma.domain.auth.dto.response.TokenResponse;
 import com.cmc.comma.domain.auth.service.AuthService;
 import com.cmc.comma.domain.user.entity.Provider;
@@ -25,5 +26,10 @@ public class AuthController {
             @PathVariable Provider provider,
             @RequestBody LoginRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(authService.login(provider, request.code(), request.redirectUri())));
+    }
+
+    @PostMapping("/reissue")
+    public ResponseEntity<ApiResponse<TokenResponse>> reissue(@RequestBody ReissueRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.reissue(request.refreshToken())));
     }
 }
