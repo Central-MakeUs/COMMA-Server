@@ -1,5 +1,6 @@
 package com.cmc.comma.global.auth.jwt;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -11,6 +12,10 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class JwtTokenProvider {
+
+    private static final String CLAIM_TYPE = "type";
+    private static final String TYPE_ACCESS = "access";
+    private static final String TYPE_REFRESH = "refresh";
 
     @Value("${jwt.secret}")
     private String secret;
@@ -28,37 +33,53 @@ public class JwtTokenProvider {
     public String generateAccessToken(Long userId) {
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim(CLAIM_TYPE, TYPE_ACCESS)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
                 .signWith(getSigningKey())
                 .compact();
     }
 
-    public String generateRefreshToken() {
+    public String generateRefreshToken(Long userId) {
         return Jwts.builder()
+                .subject(String.valueOf(userId))
+                .claim(CLAIM_TYPE, TYPE_REFRESH)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + refreshTokenExpiration))
                 .signWith(getSigningKey())
                 .compact();
     }
 
+    public long getRefreshTokenExpiration() {
+        return refreshTokenExpiration;
+    }
+
     public Long getUserId(String token) {
-        return Long.parseLong(
-                Jwts.parser()
-                        .verifyWith(getSigningKey())
-                        .build()
-                        .parseSignedClaims(token)
-                        .getPayload()
-                        .getSubject()
-        );
+        return Long.parseLong(parseClaims(token).getSubject());
+    }
+
+    public boolean isAccessToken(String token) {
+        return TYPE_ACCESS.equals(parseClaims(token).get(CLAIM_TYPE, String.class));
+    }
+
+    public boolean isRefreshToken(String token) {
+        return TYPE_REFRESH.equals(parseClaims(token).get(CLAIM_TYPE, String.class));
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token);
+            parseClaims(token);
             return true;
         } catch (JwtException e) {
             return false;
         }
+    }
+
+    private Claims parseClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }
