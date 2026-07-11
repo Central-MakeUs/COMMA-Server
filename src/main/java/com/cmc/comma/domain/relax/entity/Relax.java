@@ -43,5 +43,8 @@ public class Relax extends BaseTimeEntity {
     @Column(nullable = false, length = 500)
     private String description;
 
+    @Column(nullable = false, length = 500)
+    private String activeMessage;
+
     private String imageUrl;
 }
