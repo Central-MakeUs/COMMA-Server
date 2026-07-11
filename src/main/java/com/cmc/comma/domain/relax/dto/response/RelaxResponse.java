@@ -6,6 +6,7 @@ public record RelaxResponse(
         Long id,
         String name,
         String description,
+        String activeMessage,
         String imageUrl,
         long activeUserCount
 ) {
@@ -14,6 +15,7 @@ public record RelaxResponse(
                 relax.getId(),
                 relax.getName(),
                 relax.getDescription(),
+                relax.getActiveMessage(),
                 relax.getImageUrl(),
                 activeUserCount
         );
