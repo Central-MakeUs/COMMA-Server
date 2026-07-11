@@ -44,7 +44,9 @@ public class AuthService {
         return new TokenResponse(
                 jwtTokenProvider.generateAccessToken(user.getId()),
                 jwtTokenProvider.generateRefreshToken(),
-                user.isOnboardingCompleted()
+                user.isOnboardingCompleted(),
+                // 온보딩 전에는 임시 placeholder 닉네임이므로 노출하지 않는다
+                user.isOnboardingCompleted() ? user.getNickname() : null
         );
     }
 
