@@ -38,6 +38,12 @@ public enum ErrorCode {
 
     // Feed
     FEED_NOT_FOUND(HttpStatus.NOT_FOUND, "피드를 찾을 수 없습니다."),
+    IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "사진은 필수입니다."),
+    INVALID_IMAGE_FORMAT(HttpStatus.BAD_REQUEST, "지원하지 않는 이미지 형식입니다."),
+    IMAGE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "이미지 용량이 너무 큽니다."),
+    HASHTAG_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "해시태그는 최대 2개까지 등록할 수 있습니다."),
+    HASHTAG_TOO_LONG(HttpStatus.BAD_REQUEST, "해시태그는 최대 10자까지 입력할 수 있습니다."),
+    REVIEW_TOO_LONG(HttpStatus.BAD_REQUEST, "한줄 소감은 최대 20자까지 입력할 수 있습니다."),
 
     // Archive
     ARCHIVE_NOT_FOUND(HttpStatus.NOT_FOUND, "아카이브를 찾을 수 없습니다."),

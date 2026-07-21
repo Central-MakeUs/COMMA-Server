@@ -28,6 +28,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
     runtimeOnly 'com.mysql:mysql-connector-j'
+    // OCI Object Storage (S3 호환 API) 연동용 클라이언트 — 저장은 100% OCI로 감
+    implementation platform('software.amazon.awssdk:bom:2.29.0')
+    implementation 'software.amazon.awssdk:s3'
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
