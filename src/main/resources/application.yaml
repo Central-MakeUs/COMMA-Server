@@ -10,6 +10,11 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
+      file-size-threshold: 0    # 메모리에 쌓지 않고 임시파일로 스트리밍
 
 jwt:
   secret: ${JWT_SECRET}
@@ -28,3 +33,12 @@ apple:
   team-id: ${APPLE_TEAM_ID}
   key-id: ${APPLE_KEY_ID}
   private-key: ${APPLE_PRIVATE_KEY}
+
+# OCI Object Storage (S3 호환)
+oci:
+  storage:
+    endpoint: ${OCI_S3_ENDPOINT}      # https://{namespace}.compat.objectstorage.{region}.oraclecloud.com
+    region: ${OCI_S3_REGION}          # 예: ap-chuncheon-1
+    bucket: ${OCI_S3_BUCKET}          # 예: comma-media
+    access-key: ${OCI_S3_ACCESS_KEY}  # Customer Secret Key
+    secret-key: ${OCI_S3_SECRET_KEY}
