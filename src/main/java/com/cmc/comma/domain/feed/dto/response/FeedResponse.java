@@ -8,6 +8,7 @@ import java.util.List;
 
 public record FeedResponse(
         Long feedId,
+        String nickname,
         Mood mood,
         TimeBudget timeBudget,
         String imageUrl,
@@ -16,9 +17,10 @@ public record FeedResponse(
         boolean isPublic,
         LocalDateTime createdAt
 ) {
-    public static FeedResponse of(Feed feed, String imageUrl) {
+    public static FeedResponse of(Feed feed, String imageUrl, String nickname) {
         return new FeedResponse(
                 feed.getId(),
+                nickname,
                 feed.getMood(),
                 feed.getTimeBudget(),
                 imageUrl,
