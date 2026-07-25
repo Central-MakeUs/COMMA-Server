@@ -3,6 +3,7 @@ package com.cmc.comma.domain.feed.repository;
 import com.cmc.comma.domain.checklist.entity.Mood;
 import com.cmc.comma.domain.checklist.entity.TimeBudget;
 import com.cmc.comma.domain.feed.entity.Feed;
+import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,4 +21,9 @@ public interface FeedRepository extends JpaRepository<Feed, Long> {
 
     // 내 피드 (공개+비공개)
     Slice<Feed> findByUserIdAndIdLessThanOrderByIdDesc(Long userId, Long cursorId, Pageable pageable);
+
+    // 회원 탈퇴 시: 내 피드 전체 조회(이미지 정리용) + 삭제
+    List<Feed> findByUserId(Long userId);
+
+    void deleteByUserId(Long userId);
 }

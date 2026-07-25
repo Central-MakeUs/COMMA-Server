@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -70,6 +71,18 @@ public class StorageService {
                 .getObjectRequest(getObject)
                 .build();
         return s3Presigner.presignGetObject(presignRequest).url().toString();
+    }
+
+    /** 객체를 삭제한다. 실패해도 흐름을 막지 않도록 예외를 삼키고 로그만 남긴다. */
+    public void delete(String key) {
+        if (key == null || key.isBlank()) {
+            return;
+        }
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
+        } catch (Exception e) {
+            log.warn("[STORAGE] 삭제 실패 key={}", key, e);
+        }
     }
 
     private void validate(MultipartFile file) {

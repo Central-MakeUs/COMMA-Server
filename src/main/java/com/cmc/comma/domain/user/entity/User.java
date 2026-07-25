@@ -46,6 +46,11 @@ public class User extends BaseTimeEntity {
     @Builder.Default
     private Role role = Role.USER;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private Plan plan = Plan.FREE;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean onboardingCompleted = false;
@@ -63,5 +68,9 @@ public class User extends BaseTimeEntity {
 
     public void updateProfile(String nickname) {
         if (nickname != null) this.nickname = nickname;
+    }
+
+    public void changePlan(Plan plan) {
+        this.plan = plan;
     }
 }
