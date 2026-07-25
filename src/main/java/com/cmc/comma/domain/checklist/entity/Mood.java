@@ -4,15 +4,15 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Q1. 지금 기분이 어때요?
+ * Q1. 지금 상태가 어때요?
  */
 @Getter
 @RequiredArgsConstructor
 public enum Mood {
 
-    A("멍하고 싶어"),
-    B("기분 전환이 필요해"),
-    C("가볍게 해볼 수 있어");
+    A("지치고 무기력해"),
+    B("답답하고 환기가 필요해"),
+    C("괜찮아, 가볍게 즐기고 싶어");
 
     private final String label;
 }

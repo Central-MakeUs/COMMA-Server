@@ -11,8 +11,8 @@ import lombok.RequiredArgsConstructor;
 public enum TimeBudget {
 
     X("잠깐", "1시간 이내"),
-    Y("여유", "1-6시간 이내"),
-    Z("넉넉", "6시간 이상");
+    Y("여유", "1-3시간 이내"),
+    Z("넉넉", "3시간 이상");
 
     private final String label;
     private final String description;
