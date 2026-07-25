@@ -52,33 +52,26 @@ public class FeedService {
         return FeedResponse.of(feed, storageService.presignedUrl(imageKey), nickname(userId));
     }
 
-    /** 게시글 상세. 비공개 글은 작성자 본인만 조회 가능. */
+    /**
+     * 전체 공개 피드 (최신순 커서 페이징).
+     * mood / timeBudget은 각각 선택 필터 — 둘 다, 하나만, 또는 없이 조회 가능.
+     */
     @Transactional(readOnly = true)
-    public FeedResponse get(Long userId, Long feedId) {
-        Feed feed = feedRepository.findById(feedId)
-                .orElseThrow(() -> new CommaException(ErrorCode.FEED_NOT_FOUND));
-        if (!feed.isPublic() && !feed.getUserId().equals(userId)) {
-            throw new CommaException(ErrorCode.FORBIDDEN);
+    public FeedListResponse getPublicFeeds(Mood mood, TimeBudget timeBudget, Long cursor, int size) {
+        long cursorId = cursorOrFirst(cursor);
+        PageRequest page = PageRequest.of(0, size);
+        Slice<Feed> slice;
+        if (mood != null && timeBudget != null) {
+            slice = feedRepository.findByIsPublicTrueAndMoodAndTimeBudgetAndIdLessThanOrderByIdDesc(
+                    mood, timeBudget, cursorId, page);
+        } else if (mood != null) {
+            slice = feedRepository.findByIsPublicTrueAndMoodAndIdLessThanOrderByIdDesc(mood, cursorId, page);
+        } else if (timeBudget != null) {
+            slice = feedRepository.findByIsPublicTrueAndTimeBudgetAndIdLessThanOrderByIdDesc(
+                    timeBudget, cursorId, page);
+        } else {
+            slice = feedRepository.findByIsPublicTrueAndIdLessThanOrderByIdDesc(cursorId, page);
         }
-        return FeedResponse.of(feed, storageService.presignedUrl(feed.getImageKey()), nickname(feed.getUserId()));
-    }
-
-    /** 전체 공개 피드 (최신순 커서 페이징). */
-    @Transactional(readOnly = true)
-    public FeedListResponse getPublicFeeds(Long cursor, int size) {
-        Slice<Feed> slice = feedRepository.findByIsPublicTrueAndIdLessThanOrderByIdDesc(
-                cursorOrFirst(cursor), PageRequest.of(0, size));
-        return toListResponse(slice);
-    }
-
-    /** 카테고리(기분+시간)별 공개 피드 (최신순 커서 페이징). */
-    @Transactional(readOnly = true)
-    public FeedListResponse getPublicFeedsByCategory(Mood mood, TimeBudget timeBudget, Long cursor, int size) {
-        if (mood == null || timeBudget == null) {
-            throw new CommaException(ErrorCode.INVALID_INPUT);
-        }
-        Slice<Feed> slice = feedRepository.findByIsPublicTrueAndMoodAndTimeBudgetAndIdLessThanOrderByIdDesc(
-                mood, timeBudget, cursorOrFirst(cursor), PageRequest.of(0, size));
         return toListResponse(slice);
     }
 
