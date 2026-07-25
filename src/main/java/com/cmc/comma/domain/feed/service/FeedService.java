@@ -7,11 +7,15 @@ import com.cmc.comma.domain.feed.dto.response.FeedListResponse;
 import com.cmc.comma.domain.feed.dto.response.FeedResponse;
 import com.cmc.comma.domain.feed.entity.Feed;
 import com.cmc.comma.domain.feed.repository.FeedRepository;
+import com.cmc.comma.domain.user.entity.User;
+import com.cmc.comma.domain.user.repository.UserRepository;
 import com.cmc.comma.global.exception.CommaException;
 import com.cmc.comma.global.exception.ErrorCode;
 import com.cmc.comma.global.storage.StorageService;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -30,6 +34,7 @@ public class FeedService {
 
     private final FeedRepository feedRepository;
     private final StorageService storageService;
+    private final UserRepository userRepository;
 
     /** 휴식 인증 게시글 생성 (사진 업로드 + 해시태그 + 소감 + 공개여부). */
     @Transactional
@@ -44,7 +49,7 @@ public class FeedService {
         Feed feed = feedRepository.save(Feed.create(
                 userId, request.mood(), request.timeBudget(), imageKey, hashtags, review, request.isPublic()));
 
-        return FeedResponse.of(feed, storageService.presignedUrl(imageKey));
+        return FeedResponse.of(feed, storageService.presignedUrl(imageKey), nickname(userId));
     }
 
     /** 게시글 상세. 비공개 글은 작성자 본인만 조회 가능. */
@@ -55,7 +60,7 @@ public class FeedService {
         if (!feed.isPublic() && !feed.getUserId().equals(userId)) {
             throw new CommaException(ErrorCode.FORBIDDEN);
         }
-        return FeedResponse.of(feed, storageService.presignedUrl(feed.getImageKey()));
+        return FeedResponse.of(feed, storageService.presignedUrl(feed.getImageKey()), nickname(feed.getUserId()));
     }
 
     /** 전체 공개 피드 (최신순 커서 페이징). */
@@ -86,13 +91,25 @@ public class FeedService {
     }
 
     private FeedListResponse toListResponse(Slice<Feed> slice) {
-        List<FeedResponse> items = slice.getContent().stream()
-                .map(feed -> FeedResponse.of(feed, storageService.presignedUrl(feed.getImageKey())))
+        List<Feed> feeds = slice.getContent();
+        // 작성자 닉네임을 userId로 한 번에 조회(N+1 방지) 후 매핑
+        Map<Long, String> nicknames = userRepository.findAllById(
+                        feeds.stream().map(Feed::getUserId).distinct().toList()).stream()
+                .collect(Collectors.toMap(User::getId, User::getNickname));
+
+        List<FeedResponse> items = feeds.stream()
+                .map(feed -> FeedResponse.of(feed, storageService.presignedUrl(feed.getImageKey()),
+                        nicknames.get(feed.getUserId())))
                 .toList();
         Long nextCursor = slice.hasNext() && !items.isEmpty()
                 ? items.get(items.size() - 1).feedId()
                 : null;
         return new FeedListResponse(items, nextCursor, slice.hasNext());
+    }
+
+    /** userId로 작성자 닉네임 조회 (없으면 null). */
+    private String nickname(Long userId) {
+        return userRepository.findById(userId).map(User::getNickname).orElse(null);
     }
 
     private long cursorOrFirst(Long cursor) {
