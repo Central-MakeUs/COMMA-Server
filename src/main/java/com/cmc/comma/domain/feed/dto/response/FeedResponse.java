@@ -15,9 +15,11 @@ public record FeedResponse(
         List<String> hashtags,
         String review,
         boolean isPublic,
+        long likeCount,
+        boolean isLiked,
         LocalDateTime createdAt
 ) {
-    public static FeedResponse of(Feed feed, String imageUrl, String nickname) {
+    public static FeedResponse of(Feed feed, String imageUrl, String nickname, long likeCount, boolean isLiked) {
         return new FeedResponse(
                 feed.getId(),
                 nickname,
@@ -27,6 +29,8 @@ public record FeedResponse(
                 feed.getHashtags(),
                 feed.getReview(),
                 feed.isPublic(),
+                likeCount,
+                isLiked,
                 feed.getCreatedAt()
         );
     }

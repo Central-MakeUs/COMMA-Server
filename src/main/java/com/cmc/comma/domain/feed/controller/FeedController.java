@@ -5,6 +5,7 @@ import com.cmc.comma.domain.checklist.entity.TimeBudget;
 import com.cmc.comma.domain.feed.dto.request.FeedCreateRequest;
 import com.cmc.comma.domain.feed.dto.response.FeedListResponse;
 import com.cmc.comma.domain.feed.dto.response.FeedResponse;
+import com.cmc.comma.domain.feed.dto.response.LikeResponse;
 import com.cmc.comma.domain.feed.service.FeedService;
 import com.cmc.comma.global.response.ApiResponse;
 import com.cmc.comma.global.util.SecurityUtil;
@@ -39,7 +40,7 @@ public class FeedController {
 
     /**
      * 전체 공개 피드 (커서 페이징).
-     * mood + timeBudget을 함께 주면 해당 카테고리로 필터링한다.
+     * mood / timeBudget은 각각 선택 필터 — 둘 다, 하나만, 또는 없이 조회 가능.
      */
     @GetMapping
     public ResponseEntity<ApiResponse<FeedListResponse>> getPublicFeeds(
@@ -47,10 +48,8 @@ public class FeedController {
             @RequestParam(required = false) TimeBudget timeBudget,
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "20") int size) {
-        FeedListResponse response = (mood != null || timeBudget != null)
-                ? feedService.getPublicFeedsByCategory(mood, timeBudget, cursor, size)
-                : feedService.getPublicFeeds(cursor, size);
-        return ResponseEntity.ok(ApiResponse.ok(response));
+        return ResponseEntity.ok(ApiResponse.ok(
+                feedService.getPublicFeeds(SecurityUtil.getCurrentUserId(), mood, timeBudget, cursor, size)));
     }
 
     /** 내 피드 (공개+비공개). */
@@ -62,10 +61,10 @@ public class FeedController {
                 ApiResponse.ok(feedService.getMyFeeds(SecurityUtil.getCurrentUserId(), cursor, size)));
     }
 
-    /** 게시글 상세. */
-    @GetMapping("/{feedId}")
-    public ResponseEntity<ApiResponse<FeedResponse>> get(@PathVariable Long feedId) {
+    /** 좋아요 토글 (누르면 등록, 다시 누르면 취소). */
+    @PostMapping("/{feedId}/likes")
+    public ResponseEntity<ApiResponse<LikeResponse>> toggleLike(@PathVariable Long feedId) {
         return ResponseEntity.ok(
-                ApiResponse.ok(feedService.get(SecurityUtil.getCurrentUserId(), feedId)));
+                ApiResponse.ok(feedService.toggleLike(SecurityUtil.getCurrentUserId(), feedId)));
     }
 }
