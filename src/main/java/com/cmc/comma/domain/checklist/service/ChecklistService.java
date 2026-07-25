@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class ChecklistService {
 
-    private static final String Q1_TITLE = "지금 기분이 어때요?";
+    private static final String Q1_TITLE = "지금 상태가 어때요?";
     private static final String Q2_TITLE = "어느정도 시간이 있어요?";
 
     public ChecklistResponse getChecklist() {
