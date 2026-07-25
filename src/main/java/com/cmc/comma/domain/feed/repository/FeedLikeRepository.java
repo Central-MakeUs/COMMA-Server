@@ -24,6 +24,11 @@ public interface FeedLikeRepository extends JpaRepository<FeedLike, Long> {
     @Query("select fl.feedId from FeedLike fl where fl.userId = :userId and fl.feedId in :feedIds")
     List<Long> findLikedFeedIds(Long userId, List<Long> feedIds);
 
+    // 회원 탈퇴: 내가 누른 좋아요 삭제 + 내 피드들에 달린 좋아요 삭제
+    void deleteByUserId(Long userId);
+
+    void deleteByFeedIdIn(List<Long> feedIds);
+
     // countByFeedIdIn 결과 프로젝션
     interface FeedLikeCount {
         Long getFeedId();

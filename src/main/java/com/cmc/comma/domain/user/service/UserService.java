@@ -2,6 +2,8 @@ package com.cmc.comma.domain.user.service;
 
 import com.cmc.comma.domain.activity.repository.ActivityRepository;
 import com.cmc.comma.domain.auth.repository.RefreshTokenRepository;
+import com.cmc.comma.domain.feed.entity.Feed;
+import com.cmc.comma.domain.feed.repository.FeedLikeRepository;
 import com.cmc.comma.domain.feed.repository.FeedRepository;
 import com.cmc.comma.domain.user.dto.response.PlanResponse;
 import com.cmc.comma.domain.user.entity.ContactType;
@@ -13,6 +15,7 @@ import com.cmc.comma.domain.user.repository.UserRepository;
 import com.cmc.comma.global.exception.CommaException;
 import com.cmc.comma.global.exception.ErrorCode;
 import com.cmc.comma.global.storage.StorageService;
+import java.util.List;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -32,6 +35,7 @@ public class UserService {
     private final NicknameGenerator nicknameGenerator;
     private final PremiumAlertRepository premiumAlertRepository;
     private final FeedRepository feedRepository;
+    private final FeedLikeRepository feedLikeRepository;
     private final ActivityRepository activityRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final StorageService storageService;
@@ -104,18 +108,25 @@ public class UserService {
                 () -> premiumAlertRepository.save(PremiumAlert.of(userId, contactType, normalized)));
     }
 
-    /** 회원 탈퇴: 내 데이터(피드·활동·알림·토큰)와 업로드 이미지까지 하드 삭제. */
+    /** 회원 탈퇴: 내 데이터(피드·좋아요·활동·알림·토큰)와 업로드 이미지까지 하드 삭제. */
     @Transactional
     public void withdraw(Long userId) {
+        List<Feed> myFeeds = feedRepository.findByUserId(userId);
         // 업로드 이미지 정리 (best-effort)
-        feedRepository.findByUserId(userId)
-                .forEach(feed -> storageService.delete(feed.getImageKey()));
+        myFeeds.forEach(feed -> storageService.delete(feed.getImageKey()));
+
+        // 좋아요 정리: 내 피드에 달린 것 + 내가 누른 것
+        List<Long> myFeedIds = myFeeds.stream().map(Feed::getId).toList();
+        if (!myFeedIds.isEmpty()) {
+            feedLikeRepository.deleteByFeedIdIn(myFeedIds);
+        }
+        feedLikeRepository.deleteByUserId(userId);
+
         feedRepository.deleteByUserId(userId);
         activityRepository.deleteByUserId(userId);
         premiumAlertRepository.deleteByUserId(userId);
         refreshTokenRepository.delete(userId);
         userRepository.deleteById(userId);
-        // TODO(feature/feed-like 머지 후): 내가 누른/내 피드에 달린 feed_likes 정리 추가
     }
 
     private String validateContact(ContactType contactType, String contact) {
