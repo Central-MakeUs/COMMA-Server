@@ -5,6 +5,7 @@ import com.cmc.comma.domain.checklist.entity.TimeBudget;
 import com.cmc.comma.domain.feed.dto.request.FeedCreateRequest;
 import com.cmc.comma.domain.feed.dto.response.FeedListResponse;
 import com.cmc.comma.domain.feed.dto.response.FeedResponse;
+import com.cmc.comma.domain.feed.dto.response.LikeResponse;
 import com.cmc.comma.domain.feed.service.FeedService;
 import com.cmc.comma.global.response.ApiResponse;
 import com.cmc.comma.global.util.SecurityUtil;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -46,8 +48,8 @@ public class FeedController {
             @RequestParam(required = false) TimeBudget timeBudget,
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(
-                ApiResponse.ok(feedService.getPublicFeeds(mood, timeBudget, cursor, size)));
+        return ResponseEntity.ok(ApiResponse.ok(
+                feedService.getPublicFeeds(SecurityUtil.getCurrentUserId(), mood, timeBudget, cursor, size)));
     }
 
     /** 내 피드 (공개+비공개). */
@@ -57,5 +59,12 @@ public class FeedController {
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(
                 ApiResponse.ok(feedService.getMyFeeds(SecurityUtil.getCurrentUserId(), cursor, size)));
+    }
+
+    /** 좋아요 토글 (누르면 등록, 다시 누르면 취소). */
+    @PostMapping("/{feedId}/likes")
+    public ResponseEntity<ApiResponse<LikeResponse>> toggleLike(@PathVariable Long feedId) {
+        return ResponseEntity.ok(
+                ApiResponse.ok(feedService.toggleLike(SecurityUtil.getCurrentUserId(), feedId)));
     }
 }

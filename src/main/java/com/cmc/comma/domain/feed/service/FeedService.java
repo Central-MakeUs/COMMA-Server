@@ -5,16 +5,22 @@ import com.cmc.comma.domain.checklist.entity.TimeBudget;
 import com.cmc.comma.domain.feed.dto.request.FeedCreateRequest;
 import com.cmc.comma.domain.feed.dto.response.FeedListResponse;
 import com.cmc.comma.domain.feed.dto.response.FeedResponse;
+import com.cmc.comma.domain.feed.dto.response.LikeResponse;
 import com.cmc.comma.domain.feed.entity.Feed;
+import com.cmc.comma.domain.feed.entity.FeedLike;
+import com.cmc.comma.domain.feed.repository.FeedLikeRepository;
+import com.cmc.comma.domain.feed.repository.FeedLikeRepository.FeedLikeCount;
 import com.cmc.comma.domain.feed.repository.FeedRepository;
 import com.cmc.comma.domain.user.entity.User;
 import com.cmc.comma.domain.user.repository.UserRepository;
 import com.cmc.comma.global.exception.CommaException;
 import com.cmc.comma.global.exception.ErrorCode;
 import com.cmc.comma.global.storage.StorageService;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -33,6 +39,7 @@ public class FeedService {
     private static final long FIRST_CURSOR = Long.MAX_VALUE;
 
     private final FeedRepository feedRepository;
+    private final FeedLikeRepository feedLikeRepository;
     private final StorageService storageService;
     private final UserRepository userRepository;
 
@@ -49,7 +56,24 @@ public class FeedService {
         Feed feed = feedRepository.save(Feed.create(
                 userId, request.mood(), request.timeBudget(), imageKey, hashtags, review, request.isPublic()));
 
-        return FeedResponse.of(feed, storageService.presignedUrl(imageKey), nickname(userId));
+        return FeedResponse.of(feed, storageService.presignedUrl(imageKey), nickname(userId), 0L, false);
+    }
+
+    /** 피드 좋아요 토글. 이미 눌렀으면 취소, 아니면 등록. 자기 글도 가능. */
+    @Transactional
+    public LikeResponse toggleLike(Long userId, Long feedId) {
+        if (!feedRepository.existsById(feedId)) {
+            throw new CommaException(ErrorCode.FEED_NOT_FOUND);
+        }
+        boolean liked;
+        if (feedLikeRepository.existsByFeedIdAndUserId(feedId, userId)) {
+            feedLikeRepository.deleteByFeedIdAndUserId(feedId, userId);
+            liked = false;
+        } else {
+            feedLikeRepository.save(FeedLike.of(feedId, userId));
+            liked = true;
+        }
+        return new LikeResponse(liked, feedLikeRepository.countByFeedId(feedId));
     }
 
     /**
@@ -57,7 +81,7 @@ public class FeedService {
      * mood / timeBudget은 각각 선택 필터 — 둘 다, 하나만, 또는 없이 조회 가능.
      */
     @Transactional(readOnly = true)
-    public FeedListResponse getPublicFeeds(Mood mood, TimeBudget timeBudget, Long cursor, int size) {
+    public FeedListResponse getPublicFeeds(Long currentUserId, Mood mood, TimeBudget timeBudget, Long cursor, int size) {
         long cursorId = cursorOrFirst(cursor);
         PageRequest page = PageRequest.of(0, size);
         Slice<Feed> slice;
@@ -72,7 +96,7 @@ public class FeedService {
         } else {
             slice = feedRepository.findByIsPublicTrueAndIdLessThanOrderByIdDesc(cursorId, page);
         }
-        return toListResponse(slice);
+        return toListResponse(slice, currentUserId);
     }
 
     /** 내 피드 (공개+비공개, 최신순 커서 페이징). */
@@ -80,19 +104,31 @@ public class FeedService {
     public FeedListResponse getMyFeeds(Long userId, Long cursor, int size) {
         Slice<Feed> slice = feedRepository.findByUserIdAndIdLessThanOrderByIdDesc(
                 userId, cursorOrFirst(cursor), PageRequest.of(0, size));
-        return toListResponse(slice);
+        return toListResponse(slice, userId);
     }
 
-    private FeedListResponse toListResponse(Slice<Feed> slice) {
+    private FeedListResponse toListResponse(Slice<Feed> slice, Long currentUserId) {
         List<Feed> feeds = slice.getContent();
+        if (feeds.isEmpty()) {
+            return new FeedListResponse(List.of(), null, false);
+        }
+        List<Long> feedIds = feeds.stream().map(Feed::getId).toList();
+
         // 작성자 닉네임을 userId로 한 번에 조회(N+1 방지) 후 매핑
         Map<Long, String> nicknames = userRepository.findAllById(
                         feeds.stream().map(Feed::getUserId).distinct().toList()).stream()
                 .collect(Collectors.toMap(User::getId, User::getNickname));
+        // 피드별 좋아요 수 배치 집계
+        Map<Long, Long> likeCounts = feedLikeRepository.countByFeedIdIn(feedIds).stream()
+                .collect(Collectors.toMap(FeedLikeCount::getFeedId, FeedLikeCount::getCount));
+        // 현재 유저가 좋아요한 피드 id들 배치 조회
+        Set<Long> likedByMe = new HashSet<>(feedLikeRepository.findLikedFeedIds(currentUserId, feedIds));
 
         List<FeedResponse> items = feeds.stream()
                 .map(feed -> FeedResponse.of(feed, storageService.presignedUrl(feed.getImageKey()),
-                        nicknames.get(feed.getUserId())))
+                        nicknames.get(feed.getUserId()),
+                        likeCounts.getOrDefault(feed.getId(), 0L),
+                        likedByMe.contains(feed.getId())))
                 .toList();
         Long nextCursor = slice.hasNext() && !items.isEmpty()
                 ? items.get(items.size() - 1).feedId()
