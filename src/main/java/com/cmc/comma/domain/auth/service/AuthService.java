@@ -34,6 +34,12 @@ public class AuthService {
         this.refreshTokenRepository = refreshTokenRepository;
     }
 
+    /** 로그아웃: 저장된 리프레시 토큰을 삭제한다(access 토큰은 만료까지 클라이언트가 폐기). */
+    @Transactional
+    public void logout(Long userId) {
+        refreshTokenRepository.delete(userId);
+    }
+
     @Transactional
     public TokenResponse login(Provider provider, String code, String redirectUri) {
         OAuthProvider oauthProvider = oauthProviders.get(provider);

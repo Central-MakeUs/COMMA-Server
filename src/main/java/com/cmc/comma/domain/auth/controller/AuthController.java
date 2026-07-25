@@ -6,6 +6,7 @@ import com.cmc.comma.domain.auth.dto.response.TokenResponse;
 import com.cmc.comma.domain.auth.service.AuthService;
 import com.cmc.comma.domain.user.entity.Provider;
 import com.cmc.comma.global.response.ApiResponse;
+import com.cmc.comma.global.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,5 +32,11 @@ public class AuthController {
     @PostMapping("/reissue")
     public ResponseEntity<ApiResponse<TokenResponse>> reissue(@RequestBody ReissueRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(authService.reissue(request.refreshToken())));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout() {
+        authService.logout(SecurityUtil.getCurrentUserId());
+        return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }
