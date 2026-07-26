@@ -51,7 +51,7 @@ services:
       - certbot_www:/var/www/certbot
 
   comma-app:
-    image: ${DOCKER_USERNAME}/comma-be:latest
+    image: ${DOCKER_USERNAME}/comma-be:${APP_TAG:-latest}
     container_name: comma-be
     restart: always
     ports:
