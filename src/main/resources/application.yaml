@@ -4,7 +4,13 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
-      ddl-auto: update
+      # 스키마는 Flyway가 관리한다. Hibernate는 검증만(자동 변경 금지).
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    # 기존 운영 DB(테이블 있음)는 V1을 실행하지 않고 baseline 처리, 빈 DB는 V1부터 실행
+    baseline-on-migrate: true
+    baseline-version: 1
   data:
     redis:
       host: ${REDIS_HOST:localhost}
