@@ -1,0 +1,26 @@
+# 통합 테스트 프로파일. datasource/redis는 Testcontainers가 @DynamicPropertySource로 주입.
+# 여기서는 앱 기동에 필요한 시크릿/외부설정을 더미 값으로 덮어쓴다(실제 호출 없음).
+
+jwt:
+  secret: test-jwt-secret-please-keep-this-long-enough-0123456789
+
+kakao:
+  client-id: test-kakao
+
+google:
+  client-id: test-google
+  client-secret: test-google-secret
+
+apple:
+  client-id: test-apple
+  team-id: test-team
+  key-id: test-key
+  private-key: test-private-key
+
+oci:
+  storage:
+    endpoint: https://dummy.compat.objectstorage.ap-northeast-2.oraclecloud.com
+    region: ap-northeast-2
+    bucket: test-bucket
+    access-key: test-access
+    secret-key: test-secret
