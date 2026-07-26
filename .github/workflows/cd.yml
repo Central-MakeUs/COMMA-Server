@@ -1,0 +1,69 @@
+name: CD
+
+# main에 머지(push)되면 이미지를 빌드해 Docker Hub에 push하고 운영 서버에 배포한다.
+# 기동 실패 시 이전 태그로 자동 롤백. (테스트 게이트는 PR 단계의 CI가 담당)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04-arm   # 운영 서버가 Arm(A1) → arm64 네이티브 러너로 빌드
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Short SHA
+        id: sha
+        run: echo "short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & push image (:SHA + :latest)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/comma-be:${{ steps.sha.outputs.short }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/comma-be:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to server (APP_TAG 전환 + 헬스체크 + 자동 롤백)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 167.126.10.48
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            TAG=${{ steps.sha.outputs.short }}
+            PREV=$(grep -E '^APP_TAG=' ~/.env | cut -d= -f2 || true); PREV=${PREV:-latest}
+            echo "deploy $PREV -> $TAG"
+            sed -i '/^APP_TAG=/d' ~/.env; echo "APP_TAG=$TAG" >> ~/.env
+            docker compose pull comma-app
+            docker compose up -d
+            ok=0
+            for i in $(seq 1 25); do
+              if docker logs comma-be 2>&1 | grep -q "Started CommaApplication"; then ok=1; break; fi
+              if docker logs comma-be 2>&1 | grep -qiE "APPLICATION FAILED TO START"; then break; fi
+              sleep 3
+            done
+            if [ "$ok" != 1 ]; then
+              sed -i '/^APP_TAG=/d' ~/.env; echo "APP_TAG=$PREV" >> ~/.env
+              docker compose up -d
+              echo "health check 실패 → $PREV 로 롤백"; exit 1
+            fi
+            echo "배포 성공 (APP_TAG=$TAG)"

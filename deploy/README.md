@@ -3,6 +3,16 @@
 이미지를 항상 `:{git SHA}` 와 `:latest` 두 태그로 push 하고, 서버는 `APP_TAG`로
 어떤 버전을 띄울지 지정한다. 문제가 생기면 이전 SHA로 즉시 롤백할 수 있다.
 
+## 자동 배포 (CD)
+
+`main`에 머지되면 `.github/workflows/cd.yml`이 자동으로 빌드·push·배포한다
+(기동 실패 시 이전 태그로 자동 롤백). 아래 스크립트는 **수동 배포/롤백**용.
+
+**필요한 GitHub Actions 시크릿** (Settings → Secrets and variables → Actions):
+- `DOCKERHUB_USERNAME` — Docker Hub 사용자명 (`1030pmy`)
+- `DOCKERHUB_TOKEN` — Docker Hub Access Token (hub.docker.com → Account Settings → Personal access tokens, `Read & Write`)
+- `SSH_PRIVATE_KEY` — 운영 서버 SSH 개인키 전체 내용
+
 ## 배포 흐름
 
 ```bash
