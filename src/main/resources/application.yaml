@@ -40,6 +40,20 @@ apple:
   key-id: ${APPLE_KEY_ID}
   private-key: ${APPLE_PRIVATE_KEY}
 
+# 모니터링 (Actuator)
+# health만 외부 공개(업타임 체크용, 상세는 숨김). prometheus 등 나머지는 인증 게이트(SecurityConfig).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never
+  info:
+    env:
+      enabled: false
+
 # OCI Object Storage (S3 호환)
 oci:
   storage:
