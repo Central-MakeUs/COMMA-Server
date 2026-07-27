@@ -19,9 +19,9 @@ class ActuatorIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    @DisplayName("prometheus 지표는 외부에 노출되지 않음(인증 필요)")
-    void prometheus_isNotPublic() throws Exception {
+    @DisplayName("prometheus 지표는 앱 내부에서 접근 가능(내부 스크레이핑용, 외부 차단은 nginx 담당)")
+    void prometheus_isScrapableInternally() throws Exception {
         mockMvc.perform(get("/actuator/prometheus"))
-                .andExpect(status().is4xxClientError());
+                .andExpect(status().isOk());
     }
 }

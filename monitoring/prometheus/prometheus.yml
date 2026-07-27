@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  # Prometheus 자기 자신
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # COMMA 앱 (Actuator/Micrometer 지표) — 내부 네트워크로 pull
+  - job_name: comma-app
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['comma-app:8080']
+
+  # 호스트 자원(USE) — node-exporter
+  - job_name: node
+    static_configs:
+      - targets: ['node-exporter:9100']

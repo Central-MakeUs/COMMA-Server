@@ -38,3 +38,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# 모니터링: Discord 웹훅(시크릿)은 서버에만 둠
+monitoring/alertmanager/discord_url

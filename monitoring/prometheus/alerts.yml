@@ -1,0 +1,64 @@
+groups:
+  - name: comma-service   # RED: 사용자 영향 증상
+    rules:
+      - alert: CommaAppDown
+        expr: up{job="comma-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "COMMA 앱 응답 없음"
+          description: "comma-app 스크레이핑 1분 이상 실패 (앱 다운/기동실패 의심)."
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="comma-app", status=~"5.."}[5m]))
+          / sum(rate(http_server_requests_seconds_count{job="comma-app"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "5xx 에러율 5% 초과"
+          description: "최근 5분 5xx 비율이 5%를 넘었습니다."
+
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket{job="comma-app"}[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 지연 1초 초과"
+          description: "최근 5분 요청 p95 지연이 1초를 넘었습니다."
+
+  - name: comma-host      # USE: 호스트 자원
+    rules:
+      - alert: HostDiskAlmostFull
+        expr: |
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+           / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}) < 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "디스크 여유 15% 미만"
+          description: "{{ $labels.mountpoint }} 남은 공간이 15% 미만입니다."
+
+      - alert: HostLowMemory
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "가용 메모리 10% 미만"
+          description: "호스트 가용 메모리가 10% 아래로 떨어졌습니다."
+
+      - alert: TargetDown
+        expr: up == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "모니터링 타깃 다운: {{ $labels.job }}"
+          description: "{{ $labels.job }}({{ $labels.instance }}) 스크레이핑 실패."

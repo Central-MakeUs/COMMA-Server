@@ -1,0 +1,14 @@
+route:
+  receiver: discord
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: discord
+    discord_configs:
+      # 웹훅 URL은 시크릿이므로 git이 아니라 서버의 파일에서 읽는다.
+      # 서버에 ~/monitoring/alertmanager/discord_url 파일로 Discord 웹훅 URL을 넣을 것.
+      - webhook_url_file: /etc/alertmanager/discord_url
+        send_resolved: true

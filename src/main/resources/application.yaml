@@ -53,6 +53,11 @@ management:
   info:
     env:
       enabled: false
+  metrics:
+    distribution:
+      # http 요청 지연 히스토그램 버킷 노출 → Prometheus p95/heatmap 가능
+      percentiles-histogram:
+        http.server.requests: true
 
 # OCI Object Storage (S3 호환)
 oci:
