@@ -27,6 +27,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2'
+    // 모니터링: Actuator(health/metrics 노출) + Prometheus 포맷 지표(Phase 2 스크레이핑 대비)
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
     runtimeOnly 'com.mysql:mysql-connector-j'
     // DB 마이그레이션 (운영 스키마는 Flyway가 관리)
     // Spring Boot 4.x는 오토컨피그가 모듈 분리 → flyway-core만으론 자동실행 안 됨. 스타터 필요.
