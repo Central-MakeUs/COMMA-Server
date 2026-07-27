@@ -24,10 +24,11 @@ ssh -i ~/Downloads/ssh-key-2026-07-11.key -N \
 `~/.env` (scp되는 파일):
 - `GRAFANA_ADMIN_PASSWORD` — Grafana admin 비밀번호
 
-`~/monitoring/alertmanager/discord_url` (git 아님, 서버에만 생성):
-- Discord 채널 → 채널 설정 → 연동 → 웹후크 생성 → URL을 이 파일에 한 줄로 저장
+`~/monitoring/alertmanager/slack_url` (git 아님, 서버에만 생성):
+- Slack Incoming Webhook URL을 이 파일에 한 줄로 저장
+  (Slack → App 관리 → Incoming Webhooks → 채널 지정 후 생성)
   ```bash
-  echo 'https://discord.com/api/webhooks/xxx/yyy' > ~/monitoring/alertmanager/discord_url
+  echo 'https://hooks.slack.com/services/XXX/YYY/ZZZ' > ~/monitoring/alertmanager/slack_url
   ```
 
 ## Grafana 대시보드 (UI에서 Import → ID 입력)
