@@ -26,7 +26,9 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/actuator/health",
-            "/actuator/health/**"
+            "/actuator/health/**",
+            // 내부 네트워크의 Prometheus만 스크레이핑(외부는 nginx에서 차단). 8080 호스트포트는 방화벽으로 외부 차단됨.
+            "/actuator/prometheus"
     };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
