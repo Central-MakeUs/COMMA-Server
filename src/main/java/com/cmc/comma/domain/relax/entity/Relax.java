@@ -46,5 +46,6 @@ public class Relax extends BaseTimeEntity {
     @Column(nullable = false, length = 500)
     private String activeMessage;
 
-    private String imageUrl;
+    // URL이 아니라 스토리지 객체 key만 저장(Feed와 동일 패턴). 조회 시 공개 URL로 조립한다.
+    private String imageKey;
 }

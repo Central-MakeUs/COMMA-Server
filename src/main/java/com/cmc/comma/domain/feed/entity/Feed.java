@@ -53,7 +53,7 @@ public class Feed extends BaseTimeEntity {
     @Column(nullable = false)
     private TimeBudget timeBudget;
 
-    // URL이 아니라 스토리지 객체 키만 저장. 조회 시 presigned URL로 변환한다.
+    // URL이 아니라 스토리지 객체 키만 저장. 조회 시 공개 URL로 조립한다.
     @Column(nullable = false)
     private String imageKey;
 

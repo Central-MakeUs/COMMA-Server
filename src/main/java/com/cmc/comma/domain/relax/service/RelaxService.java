@@ -10,6 +10,7 @@ import com.cmc.comma.domain.user.entity.User;
 import com.cmc.comma.domain.user.repository.UserRepository;
 import com.cmc.comma.global.exception.CommaException;
 import com.cmc.comma.global.exception.ErrorCode;
+import com.cmc.comma.global.storage.StorageService;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,6 +28,7 @@ public class RelaxService {
     private final RelaxRepository relaxRepository;
     private final ActivityRepository activityRepository;
     private final UserRepository userRepository;
+    private final StorageService storageService;
 
     /**
      * 체크리스트 답변 조합(mood, time)에 해당하는 휴식 5개 추천.
@@ -38,7 +40,8 @@ public class RelaxService {
         return relaxRepository.findByMoodAndTimeBudget(mood, timeBudget).stream()
                 .map(relax -> RelaxResponse.of(
                         relax,
-                        activityRepository.countByRelaxIdAndStartedAtAfter(relax.getId(), since)))
+                        activityRepository.countByRelaxIdAndStartedAtAfter(relax.getId(), since),
+                        storageService.publicUrl(relax.getImageKey())))
                 .toList();
     }
 
