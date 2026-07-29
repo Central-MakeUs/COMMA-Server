@@ -9,7 +9,6 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 /**
  * OCI Object Storage 연동 설정.
@@ -42,16 +41,6 @@ public class StorageConfig {
     @Bean
     public S3Client s3Client() {
         return S3Client.builder()
-                .endpointOverride(URI.create(endpoint))
-                .region(Region.of(region))
-                .credentialsProvider(credentialsProvider())
-                .serviceConfiguration(pathStyleConfig())
-                .build();
-    }
-
-    @Bean
-    public S3Presigner s3Presigner() {
-        return S3Presigner.builder()
                 .endpointOverride(URI.create(endpoint))
                 .region(Region.of(region))
                 .credentialsProvider(credentialsProvider())

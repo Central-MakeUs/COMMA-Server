@@ -10,13 +10,13 @@ public record RelaxResponse(
         String imageUrl,
         long activeUserCount
 ) {
-    public static RelaxResponse of(Relax relax, long activeUserCount) {
+    public static RelaxResponse of(Relax relax, long activeUserCount, String imageUrl) {
         return new RelaxResponse(
                 relax.getId(),
                 relax.getName(),
                 relax.getDescription(),
                 relax.getActiveMessage(),
-                relax.getImageUrl(),
+                imageUrl,
                 activeUserCount
         );
     }

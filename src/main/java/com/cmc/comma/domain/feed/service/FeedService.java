@@ -56,7 +56,7 @@ public class FeedService {
         Feed feed = feedRepository.save(Feed.create(
                 userId, request.mood(), request.timeBudget(), imageKey, hashtags, review, request.isPublic()));
 
-        return FeedResponse.of(feed, storageService.presignedUrl(imageKey), nickname(userId), 0L, false);
+        return FeedResponse.of(feed, storageService.publicUrl(imageKey), nickname(userId), 0L, false);
     }
 
     /** 피드 좋아요 토글. 이미 눌렀으면 취소, 아니면 등록. 자기 글도 가능. */
@@ -125,7 +125,7 @@ public class FeedService {
         Set<Long> likedByMe = new HashSet<>(feedLikeRepository.findLikedFeedIds(currentUserId, feedIds));
 
         List<FeedResponse> items = feeds.stream()
-                .map(feed -> FeedResponse.of(feed, storageService.presignedUrl(feed.getImageKey()),
+                .map(feed -> FeedResponse.of(feed, storageService.publicUrl(feed.getImageKey()),
                         nicknames.get(feed.getUserId()),
                         likeCounts.getOrDefault(feed.getId(), 0L),
                         likedByMe.contains(feed.getId())))

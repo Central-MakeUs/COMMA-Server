@@ -3,7 +3,6 @@ package com.cmc.comma.global.storage;
 import com.cmc.comma.global.exception.CommaException;
 import com.cmc.comma.global.exception.ErrorCode;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -13,14 +12,12 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 /**
- * OCI Object Storage(S3 호환)에 이미지를 업로드하고, 비공개 버킷 객체를 조회용 presigned URL로 변환한다.
- * DB에는 URL이 아니라 객체 키(key)만 저장하고, 조회 시점에 presigned URL을 발급한다.
+ * OCI Object Storage(S3 호환)에 이미지를 업로드하고, 공개 버킷 객체의 접근 URL을 만든다.
+ * DB에는 URL이 아니라 객체 키(key)만 저장하고, 조회 시점에 고정 공개 URL을 조립한다.
+ * (버킷 Visibility가 Public이므로 서명 없이 영구 URL로 접근 가능 — 캐싱에 유리)
  */
 @Slf4j
 @Service
@@ -28,18 +25,17 @@ public class StorageService {
 
     private static final long MAX_SIZE = 10 * 1024 * 1024; // 10MB
     private static final Set<String> ALLOWED_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
-    private static final Duration PRESIGN_TTL = Duration.ofHours(1);
 
     private final S3Client s3Client;
-    private final S3Presigner s3Presigner;
     private final String bucket;
+    private final String endpoint;
 
     public StorageService(S3Client s3Client,
-                          S3Presigner s3Presigner,
-                          @Value("${oci.storage.bucket}") String bucket) {
+                          @Value("${oci.storage.bucket}") String bucket,
+                          @Value("${oci.storage.endpoint}") String endpoint) {
         this.s3Client = s3Client;
-        this.s3Presigner = s3Presigner;
         this.bucket = bucket;
+        this.endpoint = endpoint;
     }
 
     /** 이미지를 업로드하고 객체 키를 반환한다. */
@@ -60,17 +56,13 @@ public class StorageService {
         return key;
     }
 
-    /** 비공개 버킷의 객체를 일정 시간 접근 가능한 presigned URL로 변환한다. */
-    public String presignedUrl(String key) {
-        GetObjectRequest getObject = GetObjectRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .build();
-        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                .signatureDuration(PRESIGN_TTL)
-                .getObjectRequest(getObject)
-                .build();
-        return s3Presigner.presignGetObject(presignRequest).url().toString();
+    /** 공개 버킷 객체의 고정 URL을 조립한다(서명/네트워크 호출 없음). key가 null이면 null 반환. */
+    public String publicUrl(String key) {
+        if (key == null) {
+            return null;
+        }
+        String base = endpoint.endsWith("/") ? endpoint.substring(0, endpoint.length() - 1) : endpoint;
+        return base + "/" + bucket + "/" + key;
     }
 
     /** 객체를 삭제한다. 실패해도 흐름을 막지 않도록 예외를 삼키고 로그만 남긴다. */
