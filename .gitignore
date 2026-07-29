@@ -44,3 +44,6 @@ monitoring/alertmanager/slack_url
 
 # 휴식활동 이미지 시딩용 로컬 폴더(1회성 자료, git 미포함)
 relax-images/
+
+# macOS
+.DS_Store
