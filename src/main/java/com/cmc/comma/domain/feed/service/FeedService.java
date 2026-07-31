@@ -7,10 +7,14 @@ import com.cmc.comma.domain.feed.dto.response.FeedListResponse;
 import com.cmc.comma.domain.feed.dto.response.FeedResponse;
 import com.cmc.comma.domain.feed.dto.response.LikeResponse;
 import com.cmc.comma.domain.feed.entity.Feed;
+import com.cmc.comma.domain.feed.entity.FeedBlock;
 import com.cmc.comma.domain.feed.entity.FeedLike;
+import com.cmc.comma.domain.feed.entity.FeedReport;
+import com.cmc.comma.domain.feed.repository.FeedBlockRepository;
 import com.cmc.comma.domain.feed.repository.FeedLikeRepository;
 import com.cmc.comma.domain.feed.repository.FeedLikeRepository.FeedLikeCount;
 import com.cmc.comma.domain.feed.repository.FeedRepository;
+import com.cmc.comma.domain.feed.repository.FeedReportRepository;
 import com.cmc.comma.domain.user.entity.User;
 import com.cmc.comma.domain.user.repository.UserRepository;
 import com.cmc.comma.global.exception.CommaException;
@@ -37,9 +41,13 @@ public class FeedService {
     private static final int HASHTAG_MAX_LENGTH = 10;
     private static final int REVIEW_MAX_LENGTH = 20;
     private static final long FIRST_CURSOR = Long.MAX_VALUE;
+    // IdNotIn 쿼리에 빈 리스트를 넘기면 예외가 나므로, 차단한 피드가 없을 때 채워 넣는 존재하지 않는 id
+    private static final List<Long> NO_BLOCKED_FEEDS = List.of(-1L);
 
     private final FeedRepository feedRepository;
     private final FeedLikeRepository feedLikeRepository;
+    private final FeedReportRepository feedReportRepository;
+    private final FeedBlockRepository feedBlockRepository;
     private final StorageService storageService;
     private final UserRepository userRepository;
 
@@ -76,6 +84,35 @@ public class FeedService {
         return new LikeResponse(liked, feedLikeRepository.countByFeedId(feedId));
     }
 
+    /** 피드 신고. 같은 유저가 같은 피드를 재신고하면 거부(1피드당 1회). */
+    @Transactional
+    public void report(Long userId, Long feedId) {
+        if (!feedRepository.existsById(feedId)) {
+            throw new CommaException(ErrorCode.FEED_NOT_FOUND);
+        }
+        if (feedReportRepository.existsByFeedIdAndReporterId(feedId, userId)) {
+            throw new CommaException(ErrorCode.ALREADY_REPORTED);
+        }
+        feedReportRepository.save(FeedReport.of(feedId, userId));
+    }
+
+    /** 피드 차단(숨김) 토글. 유저 전체가 아니라 이 피드 하나만 내 목록에서 안 보이게 한다. */
+    @Transactional
+    public boolean toggleBlock(Long userId, Long feedId) {
+        if (!feedRepository.existsById(feedId)) {
+            throw new CommaException(ErrorCode.FEED_NOT_FOUND);
+        }
+        boolean blocked;
+        if (feedBlockRepository.existsByFeedIdAndUserId(feedId, userId)) {
+            feedBlockRepository.deleteByFeedIdAndUserId(feedId, userId);
+            blocked = false;
+        } else {
+            feedBlockRepository.save(FeedBlock.of(feedId, userId));
+            blocked = true;
+        }
+        return blocked;
+    }
+
     /**
      * 전체 공개 피드 (최신순 커서 페이징).
      * mood / timeBudget은 각각 선택 필터 — 둘 다, 하나만, 또는 없이 조회 가능.
@@ -84,17 +121,19 @@ public class FeedService {
     public FeedListResponse getPublicFeeds(Long currentUserId, Mood mood, TimeBudget timeBudget, Long cursor, int size) {
         long cursorId = cursorOrFirst(cursor);
         PageRequest page = PageRequest.of(0, size);
+        List<Long> blockedIds = blockedFeedIds(currentUserId);
         Slice<Feed> slice;
         if (mood != null && timeBudget != null) {
-            slice = feedRepository.findByIsPublicTrueAndMoodAndTimeBudgetAndIdLessThanOrderByIdDesc(
-                    mood, timeBudget, cursorId, page);
+            slice = feedRepository.findByIsPublicTrueAndMoodAndTimeBudgetAndIdNotInAndIdLessThanOrderByIdDesc(
+                    mood, timeBudget, blockedIds, cursorId, page);
         } else if (mood != null) {
-            slice = feedRepository.findByIsPublicTrueAndMoodAndIdLessThanOrderByIdDesc(mood, cursorId, page);
+            slice = feedRepository.findByIsPublicTrueAndMoodAndIdNotInAndIdLessThanOrderByIdDesc(
+                    mood, blockedIds, cursorId, page);
         } else if (timeBudget != null) {
-            slice = feedRepository.findByIsPublicTrueAndTimeBudgetAndIdLessThanOrderByIdDesc(
-                    timeBudget, cursorId, page);
+            slice = feedRepository.findByIsPublicTrueAndTimeBudgetAndIdNotInAndIdLessThanOrderByIdDesc(
+                    timeBudget, blockedIds, cursorId, page);
         } else {
-            slice = feedRepository.findByIsPublicTrueAndIdLessThanOrderByIdDesc(cursorId, page);
+            slice = feedRepository.findByIsPublicTrueAndIdNotInAndIdLessThanOrderByIdDesc(blockedIds, cursorId, page);
         }
         return toListResponse(slice, currentUserId);
     }
@@ -102,9 +141,15 @@ public class FeedService {
     /** 내 피드 (공개+비공개, 최신순 커서 페이징). */
     @Transactional(readOnly = true)
     public FeedListResponse getMyFeeds(Long userId, Long cursor, int size) {
-        Slice<Feed> slice = feedRepository.findByUserIdAndIdLessThanOrderByIdDesc(
-                userId, cursorOrFirst(cursor), PageRequest.of(0, size));
+        Slice<Feed> slice = feedRepository.findByUserIdAndIdNotInAndIdLessThanOrderByIdDesc(
+                userId, blockedFeedIds(userId), cursorOrFirst(cursor), PageRequest.of(0, size));
         return toListResponse(slice, userId);
+    }
+
+    /** 이 유저가 차단한 피드 id 목록. 없으면 IdNotIn 예외를 피하려 존재하지 않는 sentinel을 채워 반환. */
+    private List<Long> blockedFeedIds(Long userId) {
+        List<Long> blocked = feedBlockRepository.findBlockedFeedIds(userId);
+        return blocked.isEmpty() ? NO_BLOCKED_FEEDS : blocked;
     }
 
     private FeedListResponse toListResponse(Slice<Feed> slice, Long currentUserId) {

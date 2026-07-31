@@ -44,6 +44,7 @@ public enum ErrorCode {
     HASHTAG_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "해시태그는 최대 2개까지 등록할 수 있습니다."),
     HASHTAG_TOO_LONG(HttpStatus.BAD_REQUEST, "해시태그는 최대 10자까지 입력할 수 있습니다."),
     REVIEW_TOO_LONG(HttpStatus.BAD_REQUEST, "한줄 소감은 최대 20자까지 입력할 수 있습니다."),
+    ALREADY_REPORTED(HttpStatus.CONFLICT, "이미 신고한 피드입니다."),
 
     // Archive
     ARCHIVE_NOT_FOUND(HttpStatus.NOT_FOUND, "아카이브를 찾을 수 없습니다."),

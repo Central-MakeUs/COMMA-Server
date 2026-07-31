@@ -3,6 +3,7 @@ package com.cmc.comma.domain.feed.controller;
 import com.cmc.comma.domain.checklist.entity.Mood;
 import com.cmc.comma.domain.checklist.entity.TimeBudget;
 import com.cmc.comma.domain.feed.dto.request.FeedCreateRequest;
+import com.cmc.comma.domain.feed.dto.response.BlockResponse;
 import com.cmc.comma.domain.feed.dto.response.FeedListResponse;
 import com.cmc.comma.domain.feed.dto.response.FeedResponse;
 import com.cmc.comma.domain.feed.dto.response.LikeResponse;
@@ -66,5 +67,19 @@ public class FeedController {
     public ResponseEntity<ApiResponse<LikeResponse>> toggleLike(@PathVariable Long feedId) {
         return ResponseEntity.ok(
                 ApiResponse.ok(feedService.toggleLike(SecurityUtil.getCurrentUserId(), feedId)));
+    }
+
+    /** 피드 신고 (1피드당 1회). */
+    @PostMapping("/{feedId}/report")
+    public ResponseEntity<ApiResponse<Void>> report(@PathVariable Long feedId) {
+        feedService.report(SecurityUtil.getCurrentUserId(), feedId);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    /** 피드 차단(숨김) 토글 — 나에게만 이 피드가 안 보이게 함. */
+    @PostMapping("/{feedId}/block")
+    public ResponseEntity<ApiResponse<BlockResponse>> toggleBlock(@PathVariable Long feedId) {
+        boolean blocked = feedService.toggleBlock(SecurityUtil.getCurrentUserId(), feedId);
+        return ResponseEntity.ok(ApiResponse.ok(new BlockResponse(blocked)));
     }
 }
