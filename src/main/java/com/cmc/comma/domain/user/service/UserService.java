@@ -3,7 +3,9 @@ package com.cmc.comma.domain.user.service;
 import com.cmc.comma.domain.activity.repository.ActivityRepository;
 import com.cmc.comma.domain.auth.repository.RefreshTokenRepository;
 import com.cmc.comma.domain.feed.entity.Feed;
+import com.cmc.comma.domain.feed.repository.FeedBlockRepository;
 import com.cmc.comma.domain.feed.repository.FeedLikeRepository;
+import com.cmc.comma.domain.feed.repository.FeedReportRepository;
 import com.cmc.comma.domain.feed.repository.FeedRepository;
 import com.cmc.comma.domain.user.dto.response.PlanResponse;
 import com.cmc.comma.domain.user.entity.ContactType;
@@ -36,6 +38,8 @@ public class UserService {
     private final PremiumAlertRepository premiumAlertRepository;
     private final FeedRepository feedRepository;
     private final FeedLikeRepository feedLikeRepository;
+    private final FeedReportRepository feedReportRepository;
+    private final FeedBlockRepository feedBlockRepository;
     private final ActivityRepository activityRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final StorageService storageService;
@@ -108,19 +112,23 @@ public class UserService {
                 () -> premiumAlertRepository.save(PremiumAlert.of(userId, contactType, normalized)));
     }
 
-    /** 회원 탈퇴: 내 데이터(피드·좋아요·활동·알림·토큰)와 업로드 이미지까지 하드 삭제. */
+    /** 회원 탈퇴: 내 데이터(피드·좋아요·신고·차단·활동·알림·토큰)와 업로드 이미지까지 하드 삭제. */
     @Transactional
     public void withdraw(Long userId) {
         List<Feed> myFeeds = feedRepository.findByUserId(userId);
         // 업로드 이미지 정리 (best-effort)
         myFeeds.forEach(feed -> storageService.delete(feed.getImageKey()));
 
-        // 좋아요 정리: 내 피드에 달린 것 + 내가 누른 것
+        // 좋아요/신고/차단 정리: 내 피드에 달린 것 + 내가 남긴 것
         List<Long> myFeedIds = myFeeds.stream().map(Feed::getId).toList();
         if (!myFeedIds.isEmpty()) {
             feedLikeRepository.deleteByFeedIdIn(myFeedIds);
+            feedReportRepository.deleteByFeedIdIn(myFeedIds);
+            feedBlockRepository.deleteByFeedIdIn(myFeedIds);
         }
         feedLikeRepository.deleteByUserId(userId);
+        feedReportRepository.deleteByReporterId(userId);
+        feedBlockRepository.deleteByUserId(userId);
 
         feedRepository.deleteByUserId(userId);
         activityRepository.deleteByUserId(userId);
