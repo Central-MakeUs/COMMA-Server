@@ -2,6 +2,7 @@ package com.cmc.comma.domain.activity.repository;
 
 import com.cmc.comma.domain.activity.entity.Activity;
 import com.cmc.comma.domain.checklist.entity.Mood;
+import com.cmc.comma.domain.checklist.entity.TimeBudget;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,6 +22,11 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
             + "where a.relaxId = r.id and a.userId = :userId group by r.mood")
     List<MoodCount> countByUserIdGroupByMood(Long userId);
 
+    // 마이 리포트 - 시간 비율: 내 활동들의 relax.timeBudget 분포를 한 번에 집계.
+    @Query("select r.timeBudget as timeBudget, count(a) as count from Activity a, Relax r "
+            + "where a.relaxId = r.id and a.userId = :userId group by r.timeBudget")
+    List<TimeBudgetCount> countByUserIdGroupByTimeBudget(Long userId);
+
     void deleteByUserId(Long userId);
 
     interface RelaxCount {
@@ -31,6 +37,12 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
     interface MoodCount {
         Mood getMood();
+
+        long getCount();
+    }
+
+    interface TimeBudgetCount {
+        TimeBudget getTimeBudget();
 
         long getCount();
     }
