@@ -12,6 +12,7 @@ import com.cmc.comma.domain.mypage.dto.response.MyReportResponse.MoodRatio;
 import com.cmc.comma.domain.mypage.dto.response.MyReportResponse.TimeBudgetRatio;
 import com.cmc.comma.domain.relax.entity.Relax;
 import com.cmc.comma.domain.relax.repository.RelaxRepository;
+import com.cmc.comma.global.storage.StorageService;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,23 +26,27 @@ public class MyReportService {
 
     private final ActivityRepository activityRepository;
     private final RelaxRepository relaxRepository;
+    private final StorageService storageService;
 
     @Transactional(readOnly = true)
     public MyReportResponse getReport(Long userId) {
         return new MyReportResponse(activityRanking(userId), moodRatio(userId), timeBudgetRatio(userId));
     }
 
-    /** 활동 순위: relaxId별 누적 횟수(내림차순) 집계 후 활동명 매핑. */
+    /** 활동 순위: relaxId별 누적 횟수(내림차순) 집계 후 활동명+이미지 매핑. */
     private List<ActivityRank> activityRanking(Long userId) {
         List<RelaxCount> counts = activityRepository.countByUserIdGroupByRelaxId(userId);
-        Map<Long, String> names = relaxRepository.findAllById(
+        Map<Long, Relax> relaxes = relaxRepository.findAllById(
                         counts.stream().map(RelaxCount::getRelaxId).toList()).stream()
-                .collect(Collectors.toMap(Relax::getId, Relax::getName));
+                .collect(Collectors.toMap(Relax::getId, relax -> relax));
 
         List<ActivityRank> ranking = new java.util.ArrayList<>();
         int rank = 1;
         for (RelaxCount c : counts) {
-            ranking.add(new ActivityRank(rank++, c.getRelaxId(), names.get(c.getRelaxId()), c.getCount()));
+            Relax relax = relaxes.get(c.getRelaxId());
+            String name = relax == null ? null : relax.getName();
+            String imageUrl = relax == null ? null : storageService.publicUrl(relax.getImageKey());
+            ranking.add(new ActivityRank(rank++, c.getRelaxId(), name, imageUrl, c.getCount()));
         }
         return ranking;
     }

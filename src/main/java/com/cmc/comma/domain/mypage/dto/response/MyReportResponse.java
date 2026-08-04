@@ -21,6 +21,7 @@ public record MyReportResponse(
             int rank,
             Long relaxId,
             String name,
+            String imageUrl,
             long count
     ) {}
 
