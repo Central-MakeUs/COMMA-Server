@@ -67,13 +67,19 @@ public class RelaxService {
     }
 
     /**
-     * 휴식 시작하기. 시작 기록(Activity)을 남긴다.
+     * 휴식 시작하기. 시작 기록(Activity)을 남기고 그 id를 반환한다.
+     * 클라이언트는 이 id를 들고 있다가 완료 시(피드 작성) activityId로 넘겨야 한다.
+     * 완료 전(진행 중) 활동이 이미 있으면 새로 시작할 수 없다 — 완료(피드 작성) 또는 별도 처리 없이는
+     * 완료되지 않은 활동이 계속 쌓이는 걸 막기 위함.
      */
     @Transactional
-    public void startRelax(Long userId, Long relaxId) {
+    public Long startRelax(Long userId, Long relaxId) {
         if (!relaxRepository.existsById(relaxId)) {
             throw new CommaException(ErrorCode.REST_RECOMMEND_NOT_FOUND);
         }
-        activityRepository.save(Activity.start(userId, relaxId));
+        if (activityRepository.existsByUserIdAndCompletedAtIsNull(userId)) {
+            throw new CommaException(ErrorCode.ACTIVITY_ALREADY_IN_PROGRESS);
+        }
+        return activityRepository.save(Activity.start(userId, relaxId)).getId();
     }
 }

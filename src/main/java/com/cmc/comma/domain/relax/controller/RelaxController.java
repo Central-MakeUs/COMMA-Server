@@ -4,6 +4,7 @@ import com.cmc.comma.domain.checklist.entity.Mood;
 import com.cmc.comma.domain.checklist.entity.TimeBudget;
 import com.cmc.comma.domain.relax.dto.response.CountResponse;
 import com.cmc.comma.domain.relax.dto.response.RelaxResponse;
+import com.cmc.comma.domain.relax.dto.response.StartResponse;
 import com.cmc.comma.domain.relax.service.RelaxService;
 import com.cmc.comma.global.response.ApiResponse;
 import com.cmc.comma.global.util.SecurityUtil;
@@ -43,8 +44,8 @@ public class RelaxController {
     }
 
     @PostMapping("/{relaxId}/start")
-    public ResponseEntity<ApiResponse<Void>> start(@PathVariable Long relaxId) {
-        relaxService.startRelax(SecurityUtil.getCurrentUserId(), relaxId);
-        return ResponseEntity.ok(ApiResponse.<Void>ok(null));
+    public ResponseEntity<ApiResponse<StartResponse>> start(@PathVariable Long relaxId) {
+        Long activityId = relaxService.startRelax(SecurityUtil.getCurrentUserId(), relaxId);
+        return ResponseEntity.ok(ApiResponse.ok(new StartResponse(activityId)));
     }
 }

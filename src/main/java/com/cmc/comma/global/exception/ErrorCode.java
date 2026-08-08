@@ -35,6 +35,7 @@ public enum ErrorCode {
     // Activity
     ACTIVITY_NOT_FOUND(HttpStatus.NOT_FOUND, "활동을 찾을 수 없습니다."),
     ACTIVITY_ALREADY_IN_PROGRESS(HttpStatus.CONFLICT, "이미 진행 중인 활동이 있습니다."),
+    ACTIVITY_ALREADY_COMPLETED(HttpStatus.CONFLICT, "이미 완료된 활동입니다."),
 
     // Feed
     FEED_NOT_FOUND(HttpStatus.NOT_FOUND, "피드를 찾을 수 없습니다."),

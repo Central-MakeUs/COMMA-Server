@@ -1,5 +1,7 @@
 package com.cmc.comma.domain.feed.service;
 
+import com.cmc.comma.domain.activity.entity.Activity;
+import com.cmc.comma.domain.activity.repository.ActivityRepository;
 import com.cmc.comma.domain.checklist.entity.Mood;
 import com.cmc.comma.domain.checklist.entity.TimeBudget;
 import com.cmc.comma.domain.feed.dto.request.FeedCreateRequest;
@@ -50,19 +52,35 @@ public class FeedService {
     private final FeedBlockRepository feedBlockRepository;
     private final StorageService storageService;
     private final UserRepository userRepository;
+    private final ActivityRepository activityRepository;
 
-    /** 휴식 인증 게시글 생성 (사진 업로드 + 해시태그 + 소감 + 공개여부). */
+    /**
+     * 휴식 인증 게시글 생성 (사진 업로드 + 해시태그 + 소감 + 공개여부).
+     * activityId로 지정한 휴식 활동을 함께 완료 처리한다 — 마이 리포트는 이 완료 여부로 집계되므로,
+     * 존재하지 않거나 내 활동이 아니거나 이미 완료된 activityId는 거부한다.
+     */
     @Transactional
     public FeedResponse create(Long userId, MultipartFile image, FeedCreateRequest request) {
-        if (request.mood() == null || request.timeBudget() == null || request.isPublic() == null) {
+        if (request.mood() == null || request.timeBudget() == null || request.isPublic() == null
+                || request.activityId() == null) {
             throw new CommaException(ErrorCode.INVALID_INPUT);
         }
+        Activity activity = activityRepository.findById(request.activityId())
+                .orElseThrow(() -> new CommaException(ErrorCode.ACTIVITY_NOT_FOUND));
+        if (!activity.getUserId().equals(userId)) {
+            throw new CommaException(ErrorCode.FORBIDDEN);
+        }
+        if (activity.isCompleted()) {
+            throw new CommaException(ErrorCode.ACTIVITY_ALREADY_COMPLETED);
+        }
+
         List<String> hashtags = normalizeHashtags(request.hashtags());
         String review = normalizeReview(request.review());
 
         String imageKey = storageService.upload(image, "feeds/" + userId);
-        Feed feed = feedRepository.save(Feed.create(
-                userId, request.mood(), request.timeBudget(), imageKey, hashtags, review, request.isPublic()));
+        Feed feed = feedRepository.save(Feed.create(userId, request.mood(), request.timeBudget(), imageKey,
+                hashtags, review, request.isPublic(), activity.getId()));
+        activity.complete();
 
         return FeedResponse.of(feed, storageService.publicUrl(imageKey), nickname(userId), 0L, false);
     }
