@@ -8,6 +8,7 @@ import com.cmc.comma.domain.feed.repository.FeedLikeRepository;
 import com.cmc.comma.domain.feed.repository.FeedReportRepository;
 import com.cmc.comma.domain.feed.repository.FeedRepository;
 import com.cmc.comma.domain.user.dto.response.PlanResponse;
+import com.cmc.comma.domain.user.dto.response.RestStatusResponse;
 import com.cmc.comma.domain.user.entity.ContactType;
 import com.cmc.comma.domain.user.entity.Plan;
 import com.cmc.comma.domain.user.entity.PremiumAlert;
@@ -101,6 +102,14 @@ public class UserService {
                 .orElseThrow(() -> new CommaException(ErrorCode.USER_NOT_FOUND));
         user.changePlan(plan);
         return PlanResponse.of(plan);
+    }
+
+    /** 홈 화면 휴식 유도 배너 개인화용 — 오늘 이미 휴식을 완료했는지. */
+    @Transactional(readOnly = true)
+    public RestStatusResponse getRestStatus(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CommaException(ErrorCode.USER_NOT_FOUND));
+        return RestStatusResponse.of(user);
     }
 
     /** 프리미엄 출시 알림 신청 (유저당 1건, 재제출 시 갱신). */

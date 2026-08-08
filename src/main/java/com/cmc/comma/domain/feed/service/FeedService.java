@@ -73,6 +73,8 @@ public class FeedService {
         if (activity.isCompleted()) {
             throw new CommaException(ErrorCode.ACTIVITY_ALREADY_COMPLETED);
         }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CommaException(ErrorCode.USER_NOT_FOUND));
 
         List<String> hashtags = normalizeHashtags(request.hashtags());
         String review = normalizeReview(request.review());
@@ -81,8 +83,9 @@ public class FeedService {
         Feed feed = feedRepository.save(Feed.create(userId, request.mood(), request.timeBudget(), imageKey,
                 hashtags, review, request.isPublic(), activity.getId()));
         activity.complete();
+        user.markRested(); // 홈 배너 개인화용 체크포인트 갱신
 
-        return FeedResponse.of(feed, storageService.publicUrl(imageKey), nickname(userId), 0L, false);
+        return FeedResponse.of(feed, storageService.publicUrl(imageKey), user.getNickname(), 0L, false);
     }
 
     /** 피드 좋아요 토글. 이미 눌렀으면 취소, 아니면 등록. 자기 글도 가능. */
@@ -197,11 +200,6 @@ public class FeedService {
                 ? items.get(items.size() - 1).feedId()
                 : null;
         return new FeedListResponse(items, nextCursor, slice.hasNext());
-    }
-
-    /** userId로 작성자 닉네임 조회 (없으면 null). */
-    private String nickname(Long userId) {
-        return userRepository.findById(userId).map(User::getNickname).orElse(null);
     }
 
     private long cursorOrFirst(Long cursor) {
