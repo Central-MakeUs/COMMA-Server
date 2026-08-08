@@ -4,7 +4,9 @@ import com.cmc.comma.domain.activity.entity.Activity;
 import com.cmc.comma.domain.activity.repository.ActivityRepository;
 import com.cmc.comma.domain.checklist.entity.Mood;
 import com.cmc.comma.domain.checklist.entity.TimeBudget;
+import com.cmc.comma.domain.relax.dto.response.InProgressResponse;
 import com.cmc.comma.domain.relax.dto.response.RelaxResponse;
+import com.cmc.comma.domain.relax.entity.Relax;
 import com.cmc.comma.domain.relax.repository.RelaxRepository;
 import com.cmc.comma.domain.user.entity.User;
 import com.cmc.comma.domain.user.repository.UserRepository;
@@ -14,6 +16,7 @@ import com.cmc.comma.global.storage.StorageService;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,5 +84,19 @@ public class RelaxService {
             throw new CommaException(ErrorCode.ACTIVITY_ALREADY_IN_PROGRESS);
         }
         return activityRepository.save(Activity.start(userId, relaxId)).getId();
+    }
+
+    /**
+     * 내가 지금 진행 중(완료 전)인 휴식 활동. 없으면 empty.
+     * 클라이언트가 activityId를 잃어버렸을 때(앱 재시작 등) 이걸로 복구한다.
+     */
+    @Transactional(readOnly = true)
+    public Optional<InProgressResponse> getInProgress(Long userId) {
+        return activityRepository.findByUserIdAndCompletedAtIsNull(userId)
+                .map(activity -> {
+                    Relax relax = relaxRepository.findById(activity.getRelaxId())
+                            .orElseThrow(() -> new CommaException(ErrorCode.REST_RECOMMEND_NOT_FOUND));
+                    return InProgressResponse.of(activity, relax, storageService.publicUrl(relax.getImageKey()));
+                });
     }
 }
