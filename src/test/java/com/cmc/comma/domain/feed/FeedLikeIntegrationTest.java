@@ -23,7 +23,7 @@ class FeedLikeIntegrationTest extends IntegrationTestSupport {
 
     private Feed seedFeed(Long authorId) {
         return feedRepository.save(Feed.create(
-                authorId, Mood.A, TimeBudget.X, "feeds/seed.jpg", List.of("태그"), "소감", true));
+                authorId, Mood.A, TimeBudget.X, "feeds/seed.jpg", List.of("태그"), "소감", true, null));
     }
 
     @Test

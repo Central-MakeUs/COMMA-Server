@@ -28,6 +28,8 @@ import org.hibernate.annotations.BatchSize;
  * 휴식 인증 게시글. 사진(스토리지 key) + 해시태그 + 한줄 소감 + 공개여부.
  * 카테고리는 기분(Mood)+시간(TimeBudget) 조합으로, 전체 피드에서 이 조합으로 필터한다.
  * 공개(isPublic=true) 시 전체 피드에 노출, 비공개 시 작성자만 조회 가능.
+ * activityId: 이 피드가 완료 처리한 휴식 활동(Activity). 이 작성으로 해당 활동이 "완료"되어
+ * 마이 리포트 집계에 반영된다. 활동 없이 남기는 옛 데이터/자유 게시글을 위해 nullable로 둔다.
  */
 @Entity
 @Table(name = "feeds")
@@ -70,8 +72,11 @@ public class Feed extends BaseTimeEntity {
     @Column(name = "is_public", nullable = false)
     private boolean isPublic;
 
+    @Column(name = "activity_id")
+    private Long activityId;
+
     public static Feed create(Long userId, Mood mood, TimeBudget timeBudget, String imageKey,
-                              List<String> hashtags, String review, boolean isPublic) {
+                              List<String> hashtags, String review, boolean isPublic, Long activityId) {
         return Feed.builder()
                 .userId(userId)
                 .mood(mood)
@@ -80,6 +85,7 @@ public class Feed extends BaseTimeEntity {
                 .hashtags(hashtags == null ? new ArrayList<>() : new ArrayList<>(hashtags))
                 .review(review)
                 .isPublic(isPublic)
+                .activityId(activityId)
                 .build();
     }
 }
