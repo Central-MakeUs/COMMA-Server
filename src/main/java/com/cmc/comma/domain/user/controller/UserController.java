@@ -5,6 +5,7 @@ import com.cmc.comma.domain.user.dto.request.PlanRequest;
 import com.cmc.comma.domain.user.dto.request.PremiumAlertRequest;
 import com.cmc.comma.domain.user.dto.response.NicknameResponse;
 import com.cmc.comma.domain.user.dto.response.PlanResponse;
+import com.cmc.comma.domain.user.dto.response.RestStatusResponse;
 import com.cmc.comma.domain.user.service.UserService;
 import com.cmc.comma.global.response.ApiResponse;
 import com.cmc.comma.global.util.SecurityUtil;
@@ -49,6 +50,12 @@ public class UserController {
     public ResponseEntity<ApiResponse<PlanResponse>> changePlan(@RequestBody PlanRequest request) {
         return ResponseEntity.ok(
                 ApiResponse.ok(userService.changePlan(SecurityUtil.getCurrentUserId(), request.plan())));
+    }
+
+    /** 홈 화면 휴식 유도 배너 개인화용 — 오늘 이미 휴식을 완료했는지. */
+    @GetMapping("/me/rest-status")
+    public ResponseEntity<ApiResponse<RestStatusResponse>> restStatus() {
+        return ResponseEntity.ok(ApiResponse.ok(userService.getRestStatus(SecurityUtil.getCurrentUserId())));
     }
 
     /** 프리미엄 출시 알림 신청 (이메일/연락처 중 하나). */

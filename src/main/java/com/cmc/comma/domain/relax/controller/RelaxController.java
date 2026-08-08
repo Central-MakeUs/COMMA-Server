@@ -3,7 +3,6 @@ package com.cmc.comma.domain.relax.controller;
 import com.cmc.comma.domain.checklist.entity.Mood;
 import com.cmc.comma.domain.checklist.entity.TimeBudget;
 import com.cmc.comma.domain.relax.dto.response.CountResponse;
-import com.cmc.comma.domain.relax.dto.response.InProgressResponse;
 import com.cmc.comma.domain.relax.dto.response.RelaxResponse;
 import com.cmc.comma.domain.relax.dto.response.StartResponse;
 import com.cmc.comma.domain.relax.service.RelaxService;
@@ -48,12 +47,5 @@ public class RelaxController {
     public ResponseEntity<ApiResponse<StartResponse>> start(@PathVariable Long relaxId) {
         Long activityId = relaxService.startRelax(SecurityUtil.getCurrentUserId(), relaxId);
         return ResponseEntity.ok(ApiResponse.ok(new StartResponse(activityId)));
-    }
-
-    /** 내가 지금 진행 중(완료 전)인 휴식 활동. 없으면 data:null. activityId를 잃어버린 클라이언트의 복구용. */
-    @GetMapping("/in-progress")
-    public ResponseEntity<ApiResponse<InProgressResponse>> inProgress() {
-        InProgressResponse response = relaxService.getInProgress(SecurityUtil.getCurrentUserId()).orElse(null);
-        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }

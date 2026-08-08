@@ -4,9 +4,7 @@ import com.cmc.comma.domain.activity.entity.Activity;
 import com.cmc.comma.domain.activity.repository.ActivityRepository;
 import com.cmc.comma.domain.checklist.entity.Mood;
 import com.cmc.comma.domain.checklist.entity.TimeBudget;
-import com.cmc.comma.domain.relax.dto.response.InProgressResponse;
 import com.cmc.comma.domain.relax.dto.response.RelaxResponse;
-import com.cmc.comma.domain.relax.entity.Relax;
 import com.cmc.comma.domain.relax.repository.RelaxRepository;
 import com.cmc.comma.domain.user.entity.User;
 import com.cmc.comma.domain.user.repository.UserRepository;
@@ -16,7 +14,6 @@ import com.cmc.comma.global.storage.StorageService;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,31 +69,15 @@ public class RelaxService {
     /**
      * 휴식 시작하기. 시작 기록(Activity)을 남기고 그 id를 반환한다.
      * 클라이언트는 이 id를 들고 있다가 완료 시(피드 작성) activityId로 넘겨야 한다.
-     * 완료 전(진행 중) 활동이 이미 있으면 새로 시작할 수 없다 — 완료(피드 작성) 또는 별도 처리 없이는
-     * 완료되지 않은 활동이 계속 쌓이는 걸 막기 위함.
+     * 이전에 시작만 하고 완료 안 한 활동이 있어도 막지 않는다 — 시작만 하고 이탈하는 건 흔한
+     * 경우라 매번 새 activityId를 발급해준다. 완료 안 된 활동은 어차피 마이 리포트 집계에서
+     * 빠지므로(완료된 것만 집계) 그냥 방치해도 무해하다.
      */
     @Transactional
     public Long startRelax(Long userId, Long relaxId) {
         if (!relaxRepository.existsById(relaxId)) {
             throw new CommaException(ErrorCode.REST_RECOMMEND_NOT_FOUND);
         }
-        if (activityRepository.existsByUserIdAndCompletedAtIsNull(userId)) {
-            throw new CommaException(ErrorCode.ACTIVITY_ALREADY_IN_PROGRESS);
-        }
         return activityRepository.save(Activity.start(userId, relaxId)).getId();
-    }
-
-    /**
-     * 내가 지금 진행 중(완료 전)인 휴식 활동. 없으면 empty.
-     * 클라이언트가 activityId를 잃어버렸을 때(앱 재시작 등) 이걸로 복구한다.
-     */
-    @Transactional(readOnly = true)
-    public Optional<InProgressResponse> getInProgress(Long userId) {
-        return activityRepository.findByUserIdAndCompletedAtIsNull(userId)
-                .map(activity -> {
-                    Relax relax = relaxRepository.findById(activity.getRelaxId())
-                            .orElseThrow(() -> new CommaException(ErrorCode.REST_RECOMMEND_NOT_FOUND));
-                    return InProgressResponse.of(activity, relax, storageService.publicUrl(relax.getImageKey()));
-                });
     }
 }

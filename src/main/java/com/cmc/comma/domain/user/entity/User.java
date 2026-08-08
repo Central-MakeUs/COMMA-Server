@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -57,8 +58,20 @@ public class User extends BaseTimeEntity {
 
     private LocalDateTime lastActiveAt;
 
+    // 홈 화면 휴식 유도 배너 개인화용 체크포인트 — 마지막으로 휴식을 완료(피드 작성)한 시각.
+    private LocalDateTime lastRestedAt;
+
     public void updateLastActive() {
         this.lastActiveAt = LocalDateTime.now();
+    }
+
+    public void markRested() {
+        this.lastRestedAt = LocalDateTime.now();
+    }
+
+    /** 오늘 이미 휴식을 완료했는지 (서버 로컬 날짜 기준). */
+    public boolean hasRestedToday() {
+        return lastRestedAt != null && lastRestedAt.toLocalDate().isEqual(LocalDate.now());
     }
 
     public void completeOnboarding(String nickname) {
