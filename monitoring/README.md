@@ -23,6 +23,14 @@ ssh -i ~/Downloads/ssh-key-2026-07-11.key -N \
 
 `~/.env` (scp되는 파일):
 - `GRAFANA_ADMIN_PASSWORD` — Grafana admin 비밀번호
+- `MYSQL_EXPORTER_PASSWORD` — mysqld-exporter 전용 최소권한 유저 비밀번호. 서버 `comma-mysql`에
+  최초 1회 아래 SQL로 유저를 만들어둬야 함(로컬에도 이미 만들어둠, 서버는 별도 DB라 따로 필요):
+  ```sql
+  CREATE USER 'exporter'@'%' IDENTIFIED BY '<MYSQL_EXPORTER_PASSWORD와 동일한 값>' WITH MAX_USER_CONNECTIONS 3;
+  GRANT PROCESS, REPLICATION CLIENT ON *.* TO 'exporter'@'%';
+  GRANT SELECT ON performance_schema.* TO 'exporter'@'%';
+  FLUSH PRIVILEGES;
+  ```
 
 `~/monitoring/alertmanager/slack_url` (git 아님, 서버에만 생성):
 - Slack Incoming Webhook URL을 이 파일에 한 줄로 저장
@@ -35,6 +43,16 @@ ssh -i ~/Downloads/ssh-key-2026-07-11.key -N \
 - **JVM (Micrometer)**: `4701`
 - **Spring Boot Statistics**: `6756` 또는 `11378`
 - **Node Exporter Full**: `1860`
+- **MySQL Overview (mysqld_exporter)**: `7362` — 슬로우 쿼리 다이제스트, 커넥션, InnoDB 지표 등
+
+## 슬로우 쿼리 확인
+`mysqld-exporter`가 `performance_schema.events_statements_summary_by_digest`를 긁어서
+`mysql_perf_schema_events_statements_*` 지표로 노출한다. Prometheus에서 바로 쿼리 가능:
+```promql
+topk(10, mysql_perf_schema_events_statements_seconds_total)
+```
+쿼리 텍스트가 길면 잘려서 나오므로(기본 200자), 정확한 전체 쿼리 확인은 서버에서 직접
+`performance_schema.events_statements_summary_by_digest`를 조회.
 
 ## 배포 (설정 파일은 이미지가 아니라 scp)
 

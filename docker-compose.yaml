@@ -78,6 +78,29 @@ services:
       - comma-network
 
   # ── 모니터링 스택 (UI는 127.0.0.1 바인딩 → 외부 비공개, SSH 터널로 접근) ──
+
+  # MySQL 지표(슬로우 쿼리 다이제스트 포함) → Prometheus. 전용 최소권한 유저(exporter) 사용.
+  mysqld-exporter:
+    image: prom/mysqld-exporter:v0.15.1
+    container_name: comma-mysqld-exporter
+    restart: always
+    environment:
+      MYSQLD_EXPORTER_PASSWORD: ${MYSQL_EXPORTER_PASSWORD}
+    command:
+      - '--mysqld.address=comma-mysql:3306'
+      - '--mysqld.username=exporter'
+      - '--collect.global_status'
+      - '--collect.global_variables'
+      - '--collect.info_schema.innodb_metrics'
+      - '--collect.info_schema.tables'
+      - '--collect.perf_schema.tablelocks'
+      - '--collect.perf_schema.eventsstatements'
+      - '--collect.perf_schema.eventsstatements.digest_text_limit=200'
+    depends_on:
+      - comma-mysql
+    networks:
+      - comma-network
+
   prometheus:
     image: prom/prometheus:v3.1.0
     container_name: comma-prometheus
