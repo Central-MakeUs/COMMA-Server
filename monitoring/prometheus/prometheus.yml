@@ -26,3 +26,8 @@ scrape_configs:
   - job_name: node
     static_configs:
       - targets: ['node-exporter:9100']
+
+  # MySQL 지표(슬로우 쿼리 다이제스트 포함) — mysqld-exporter
+  - job_name: mysql
+    static_configs:
+      - targets: ['mysqld-exporter:9104']
