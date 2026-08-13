@@ -130,12 +130,14 @@ class RelaxImageSeeder {
      * 원본 가로/세로가 이미 {@link #MAX_DIMENSION} 이하면 리사이징 없이 원본 바이트를 그대로 쓴다.
      */
     private byte[] resize(File file) throws IOException {
-        BufferedImage image = ImageIO.read(file);
-        if (image == null || (image.getWidth() <= MAX_DIMENSION && image.getHeight() <= MAX_DIMENSION)) {
+        BufferedImage probe = ImageIO.read(file);
+        if (probe == null || (probe.getWidth() <= MAX_DIMENSION && probe.getHeight() <= MAX_DIMENSION)) {
             return Files.readAllBytes(file.toPath());
         }
+        // Thumbnails.of(File)는 확장자로 출력 포맷을 추론한다 — BufferedImage를 직접 넘기면
+        // 그 정보가 사라져 "Output format not specified" 예외가 나므로 File을 그대로 넘긴다.
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Thumbnails.of(image)
+            Thumbnails.of(file)
                     .size(MAX_DIMENSION, MAX_DIMENSION)
                     .outputQuality(JPEG_QUALITY)
                     .toOutputStream(out);
