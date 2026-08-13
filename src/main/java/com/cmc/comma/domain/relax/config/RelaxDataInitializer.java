@@ -38,7 +38,7 @@ public class RelaxDataInitializer implements ApplicationRunner {
         add(relaxes, Mood.A, TimeBudget.X, "좋아하는 음악 듣기", "눈 감고 음악 들으면서 쉬어봐요", "좋아하는 음악 듣는 중...");
         add(relaxes, Mood.A, TimeBudget.X, "따뜻한 음료 마시기", "따뜻하게 마시면서 피곤을 풀어봐요", "따뜻한 음료 마시는 중...");
         add(relaxes, Mood.A, TimeBudget.X, "책 한 챕터 읽기", "감명깊은 책 한 챕터만 천천히 읽어요", "책 한 챕터 읽는 중...");
-        add(relaxes, Mood.A, TimeBudget.X, "향초 키고 명상하기", "눈 감고 머리를 정리해봐요", "향초 키고 명상하는 중...");
+        add(relaxes, Mood.A, TimeBudget.X, "향초 켜고 명상하기", "눈 감고 머리를 정리해봐요", "향초 키고 명상하는 중...");
 
         // A(지치고 무기력해) - Y(여유)
         add(relaxes, Mood.A, TimeBudget.Y, "공원 벤치에 앉아있기", "공원 벤치에서 지나가는 사람 구경해봐요", "공원 벤치에 앉아있는 중...");
