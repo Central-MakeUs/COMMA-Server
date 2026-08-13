@@ -78,12 +78,14 @@ public class StorageService {
      */
     private byte[] resize(MultipartFile file) throws IOException {
         byte[] original = file.getBytes();
-        BufferedImage image = ImageIO.read(new ByteArrayInputStream(original));
-        if (image == null || (image.getWidth() <= MAX_DIMENSION && image.getHeight() <= MAX_DIMENSION)) {
+        BufferedImage probe = ImageIO.read(new ByteArrayInputStream(original));
+        if (probe == null || (probe.getWidth() <= MAX_DIMENSION && probe.getHeight() <= MAX_DIMENSION)) {
             return original;
         }
+        // Thumbnails.of(InputStream)은 스트림 내용을 스니핑해 출력 포맷을 추론한다 — BufferedImage를
+        // 직접 넘기면 그 정보가 사라져 "Output format not specified" 예외가 나므로 원본 바이트를 다시 넘긴다.
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Thumbnails.of(image)
+            Thumbnails.of(new ByteArrayInputStream(original))
                     .size(MAX_DIMENSION, MAX_DIMENSION)
                     .outputQuality(JPEG_QUALITY)
                     .toOutputStream(out);
