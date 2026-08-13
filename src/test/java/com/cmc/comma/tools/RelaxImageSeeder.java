@@ -2,7 +2,10 @@ package com.cmc.comma.tools;
 
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.sql.Connection;
@@ -13,6 +16,9 @@ import java.text.Normalizer;
 import java.text.Normalizer.Form;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import javax.imageio.ImageIO;
+import net.coobird.thumbnailator.Thumbnails;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -41,6 +47,10 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 class RelaxImageSeeder {
 
     private static final List<String> EXTENSIONS = List.of("jpg", "jpeg", "png", "webp");
+    // Thumbnailator(ImageIO)는 WebP를 순정으로 못 읽는다 — jpg/png만 리사이징, webp는 원본 그대로 업로드.
+    private static final Set<String> RESIZABLE_EXTENSIONS = Set.of("jpg", "jpeg", "png");
+    private static final int MAX_DIMENSION = 1080;
+    private static final double JPEG_QUALITY = 0.85;
 
     @Test
     void seedRelaxImages() throws Exception {
@@ -86,13 +96,16 @@ class RelaxImageSeeder {
 
                     String ext = extension(imageFile.getName());
                     String key = "relaxes/" + id + "." + ext;
+                    byte[] body = RESIZABLE_EXTENSIONS.contains(ext)
+                            ? resize(imageFile)
+                            : Files.readAllBytes(imageFile.toPath());
                     s3Client.putObject(
                             PutObjectRequest.builder()
                                     .bucket(bucket)
                                     .key(key)
                                     .contentType(contentType(ext))
                                     .build(),
-                            RequestBody.fromBytes(Files.readAllBytes(imageFile.toPath())));
+                            RequestBody.fromBytes(body));
 
                     try (PreparedStatement update =
                             conn.prepareStatement("UPDATE relaxes SET image_key = ? WHERE id = ?")) {
@@ -109,6 +122,25 @@ class RelaxImageSeeder {
         matched.forEach(m -> System.out.println("  ✓ " + m));
         System.out.println("[SEED] 미매칭 " + unmatched.size() + "건 (로컬에 파일 없음):");
         unmatched.forEach(m -> System.out.println("  ✗ " + m));
+    }
+
+    /**
+     * 긴 변 기준 {@link #MAX_DIMENSION}px로 축소하고 품질 {@link #JPEG_QUALITY}로 재압축한다.
+     * Thumbnailator는 원본보다 작은 크기를 요청해도 확대해버리므로(내장 방지 기능 없음),
+     * 원본 가로/세로가 이미 {@link #MAX_DIMENSION} 이하면 리사이징 없이 원본 바이트를 그대로 쓴다.
+     */
+    private byte[] resize(File file) throws IOException {
+        BufferedImage image = ImageIO.read(file);
+        if (image == null || (image.getWidth() <= MAX_DIMENSION && image.getHeight() <= MAX_DIMENSION)) {
+            return Files.readAllBytes(file.toPath());
+        }
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Thumbnails.of(image)
+                    .size(MAX_DIMENSION, MAX_DIMENSION)
+                    .outputQuality(JPEG_QUALITY)
+                    .toOutputStream(out);
+            return out.toByteArray();
+        }
     }
 
     /** relaxName.{jpg|jpeg|png|webp} 파일을 직접 존재 여부로 탐색한다 (listFiles 비교 금지 — 한글 NFC/NFD 정규화 이슈 회피). */
