@@ -27,14 +27,20 @@ jwt:
   access-token-expiration: 3600000      # 1시간 (3,600초)
   refresh-token-expiration: 1209600000  # 2주 (1,209,600초)
 
-# 프론트 SDK가 이미 검증 가능한 토큰(카카오 access_token, 구글/애플 id_token)을 넘겨주므로
-# code 교환용 client-secret/redirect-uri는 필요 없다. client-id는 구글/애플 id_token의
-# aud(대상) 검증에 계속 쓰인다.
+# 프론트 SDK 마이그레이션 기간 동안 기존 code 교환 방식과 SDK 토큰 방식을 함께 지원한다.
+# 프론트 전환이 끝나면 client-secret/team-id/key-id/private-key(=code 교환 전용)는 지운다.
+kakao:
+  client-id: ${KAKAO_CLIENT_ID}
+
 google:
   client-id: ${GOOGLE_CLIENT_ID}
+  client-secret: ${GOOGLE_CLIENT_SECRET}
 
 apple:
   client-id: ${APPLE_CLIENT_ID}
+  team-id: ${APPLE_TEAM_ID}
+  key-id: ${APPLE_KEY_ID}
+  private-key: ${APPLE_PRIVATE_KEY}
 
 # 모니터링 (Actuator)
 # health만 외부 공개(업타임 체크용, 상세는 숨김). prometheus 등 나머지는 인증 게이트(SecurityConfig).

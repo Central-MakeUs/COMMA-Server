@@ -4,6 +4,8 @@ import com.cmc.comma.domain.auth.oauth.OAuthProvider;
 import com.cmc.comma.domain.auth.oauth.OAuthUserInfo;
 import com.cmc.comma.domain.auth.oauth.google.dto.GooglePublicKeysResponse;
 import com.cmc.comma.domain.auth.oauth.google.dto.GooglePublicKeysResponse.GooglePublicKey;
+import com.cmc.comma.domain.auth.oauth.google.dto.GoogleTokenResponse;
+import com.cmc.comma.domain.auth.oauth.google.dto.GoogleUserInfoResponse;
 import com.cmc.comma.domain.user.entity.Provider;
 import com.cmc.comma.global.exception.CommaException;
 import com.cmc.comma.global.exception.ErrorCode;
@@ -24,14 +26,26 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
-/** 프론트 구글 SDK(Google Identity Services)가 발급한 id_token을 그대로 받아 서명만 검증한다(code 교환 없음). */
+/**
+ * 프론트 마이그레이션 기간 동안 두 방식을 같이 지원한다.
+ * - 기존: authorization code를 서버가 이 토큰 엔드포인트와 교환(client_secret 필요)
+ * - SDK: 프론트 구글 SDK(Identity Services)가 이미 발급한 id_token을 서명 검증만 해서 사용
+ * 프론트가 SDK 전환을 마치면 code 교환 경로({@link #getUserInfo(String, String)}, {@link #getAccessToken},
+ * {@link #fetchUserInfo}, {@code client-secret} 설정)는 삭제한다.
+ */
 @Slf4j
 @Component
 public class GoogleOAuthProvider implements OAuthProvider {
 
+    private static final String TOKEN_URL = "https://oauth2.googleapis.com/token";
+    private static final String USER_INFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
     private static final String KEYS_URL = "https://www.googleapis.com/oauth2/v3/certs";
     // 구글은 iss가 두 형태 중 하나로 온다 — 둘 다 유효하다고 문서에 명시돼있음.
     private static final Set<String> VALID_ISSUERS = Set.of("https://accounts.google.com", "accounts.google.com");
@@ -39,13 +53,22 @@ public class GoogleOAuthProvider implements OAuthProvider {
     @Value("${google.client-id}")
     private String clientId;
 
+    @Value("${google.client-secret}")
+    private String clientSecret;
+
     private final RestClient restClient = RestClient.create();
 
     // 구글 공개키(JWKS) 캐시. kid로 못 찾으면 재조회한다(키 로테이션 대응).
     private volatile Map<String, PublicKey> publicKeys = Map.of();
 
     @Override
-    public OAuthUserInfo getUserInfo(String idToken) {
+    public OAuthUserInfo getUserInfo(String code, String redirectUri) {
+        String accessToken = getAccessToken(code, redirectUri);
+        return fetchUserInfo(accessToken);
+    }
+
+    @Override
+    public OAuthUserInfo getUserInfoFromToken(String idToken) {
         Claims claims = verifyIdToken(idToken);
         String sub = claims.getSubject();
         String email = claims.get("email", String.class);
@@ -55,6 +78,32 @@ public class GoogleOAuthProvider implements OAuthProvider {
     @Override
     public Provider getProvider() {
         return Provider.GOOGLE;
+    }
+
+    private String getAccessToken(String code, String redirectUri) {
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "authorization_code");
+        params.add("client_id", clientId);
+        params.add("client_secret", clientSecret);
+        params.add("redirect_uri", redirectUri);
+        params.add("code", code);
+
+        GoogleTokenResponse response = restClient.post()
+                .uri(TOKEN_URL)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(params)
+                .retrieve()
+                .body(GoogleTokenResponse.class);
+        return response.accessToken();
+    }
+
+    private OAuthUserInfo fetchUserInfo(String accessToken) {
+        GoogleUserInfoResponse response = restClient.get()
+                .uri(USER_INFO_URL)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .retrieve()
+                .body(GoogleUserInfoResponse.class);
+        return new OAuthUserInfo(response.sub(), response.email(), Provider.GOOGLE);
     }
 
     /**

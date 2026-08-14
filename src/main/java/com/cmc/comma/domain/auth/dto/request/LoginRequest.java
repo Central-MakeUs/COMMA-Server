@@ -1,4 +1,4 @@
 package com.cmc.comma.domain.auth.dto.request;
 
-/** 프론트 SDK가 발급받은 토큰. 카카오=access_token, 구글/애플=id_token. */
-public record LoginRequest(String token) {}
+/** 기존 방식(웹 리다이렉트): authorization code + 그때 쓴 redirect_uri. */
+public record LoginRequest(String code, String redirectUri) {}
