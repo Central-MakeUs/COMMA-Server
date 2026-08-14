@@ -33,13 +33,21 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
+/**
+ * 프론트 마이그레이션 기간 동안 두 방식을 같이 지원한다.
+ * - 기존: authorization code를 서버가 자체 서명한 client_secret으로 이 토큰 엔드포인트와 교환해 id_token을 받음
+ * - SDK: 프론트 애플 SDK(AppleID.auth.signIn)가 이미 발급한 id_token을 그대로 받음
+ * 서명 검증 로직(verifyIdToken 이하)은 두 경로가 공유한다. 프론트가 SDK 전환을 마치면 code 교환 경로
+ * ({@link #getUserInfo(String, String)}, {@link #getToken}, {@link #generateClientSecret},
+ * {@link #loadPrivateKey}, {@code team-id}/{@code key-id}/{@code private-key} 설정)는 삭제한다.
+ */
 @Slf4j
 @Component
 public class AppleOAuthProvider implements OAuthProvider {
 
     private static final String TOKEN_URL = "https://appleid.apple.com/auth/token";
     private static final String KEYS_URL = "https://appleid.apple.com/auth/keys";
-    private static final String AUDIENCE = "https://appleid.apple.com";
+    private static final String ISSUER = "https://appleid.apple.com";
     private static final long CLIENT_SECRET_EXPIRATION = 1000L * 60 * 30; // 30분
 
     @Value("${apple.client-id}")
@@ -63,6 +71,11 @@ public class AppleOAuthProvider implements OAuthProvider {
     public OAuthUserInfo getUserInfo(String code, String redirectUri) {
         AppleTokenResponse token = getToken(code, redirectUri);
         return parseIdToken(token.idToken());
+    }
+
+    @Override
+    public OAuthUserInfo getUserInfoFromToken(String idToken) {
+        return parseIdToken(idToken);
     }
 
     @Override
@@ -93,7 +106,7 @@ public class AppleOAuthProvider implements OAuthProvider {
                 .issuer(teamId)
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + CLIENT_SECRET_EXPIRATION))
-                .audience().add(AUDIENCE).and()
+                .audience().add(ISSUER).and()
                 .subject(clientId)
                 .signWith(loadPrivateKey(), Jwts.SIG.ES256)
                 .compact();
@@ -129,7 +142,7 @@ public class AppleOAuthProvider implements OAuthProvider {
         try {
             return Jwts.parser()
                     .keyLocator(this::resolveSigningKey)
-                    .requireIssuer(AUDIENCE)
+                    .requireIssuer(ISSUER)
                     .requireAudience(clientId)
                     .build()
                     .parseSignedClaims(idToken)

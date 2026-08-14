@@ -40,17 +40,26 @@ public class AuthService {
         refreshTokenRepository.delete(userId);
     }
 
+    /** 기존 방식: 프론트가 리다이렉트로 받은 authorization code로 로그인. */
     @Transactional
     public TokenResponse login(Provider provider, String code, String redirectUri) {
+        OAuthUserInfo userInfo = resolveProvider(provider).getUserInfo(code, redirectUri);
+        return issueTokens(findOrCreateUser(userInfo));
+    }
+
+    /** SDK 방식: 프론트 SDK가 이미 발급받은 토큰(카카오=access_token, 구글/애플=id_token)으로 로그인. */
+    @Transactional
+    public TokenResponse loginWithSdkToken(Provider provider, String token) {
+        OAuthUserInfo userInfo = resolveProvider(provider).getUserInfoFromToken(token);
+        return issueTokens(findOrCreateUser(userInfo));
+    }
+
+    private OAuthProvider resolveProvider(Provider provider) {
         OAuthProvider oauthProvider = oauthProviders.get(provider);
         if (oauthProvider == null) {
             throw new CommaException(ErrorCode.INVALID_INPUT);
         }
-
-        OAuthUserInfo userInfo = oauthProvider.getUserInfo(code, redirectUri);
-        User user = findOrCreateUser(userInfo);
-
-        return issueTokens(user);
+        return oauthProvider;
     }
 
     /**
