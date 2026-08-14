@@ -26,7 +26,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<TokenResponse>> login(
             @PathVariable Provider provider,
             @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(ApiResponse.ok(authService.login(provider, request.code(), request.redirectUri())));
+        return ResponseEntity.ok(ApiResponse.ok(authService.login(provider, request.token())));
     }
 
     @PostMapping("/reissue")

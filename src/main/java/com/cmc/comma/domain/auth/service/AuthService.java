@@ -41,13 +41,13 @@ public class AuthService {
     }
 
     @Transactional
-    public TokenResponse login(Provider provider, String code, String redirectUri) {
+    public TokenResponse login(Provider provider, String token) {
         OAuthProvider oauthProvider = oauthProviders.get(provider);
         if (oauthProvider == null) {
             throw new CommaException(ErrorCode.INVALID_INPUT);
         }
 
-        OAuthUserInfo userInfo = oauthProvider.getUserInfo(code, redirectUri);
+        OAuthUserInfo userInfo = oauthProvider.getUserInfo(token);
         User user = findOrCreateUser(userInfo);
 
         return issueTokens(user);
