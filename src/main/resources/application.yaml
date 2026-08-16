@@ -61,7 +61,7 @@ management:
       percentiles-histogram:
         http.server.requests: true
 
-# OCI Object Storage (S3 호환)
+# OCI Object Storage (S3 호환) — 업로드/삭제는 항상 이 원본으로 직접 간다.
 oci:
   storage:
     endpoint: ${OCI_S3_ENDPOINT}      # https://{namespace}.compat.objectstorage.{region}.oraclecloud.com
@@ -69,3 +69,8 @@ oci:
     bucket: ${OCI_S3_BUCKET}          # 예: comma-media
     access-key: ${OCI_S3_ACCESS_KEY}  # Customer Secret Key
     secret-key: ${OCI_S3_SECRET_KEY}
+
+# 이미지 읽기 URL(공개 GET) 조립 기준. CDN(Cloudflare) 도메인을 앞단에 붙이면 MEDIA_CDN_BASE_URL만
+# 채우면 된다 — 안 정해져있으면 OCI 원본 엔드포인트로 그대로 폴백(지금까지의 동작과 동일).
+media:
+  cdn-base-url: ${MEDIA_CDN_BASE_URL:${oci.storage.endpoint}}

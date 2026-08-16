@@ -24,6 +24,10 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
  * DB에는 URL이 아니라 객체 키(key)만 저장하고, 조회 시점에 고정 공개 URL을 조립한다.
  * (버킷 Visibility가 Public이므로 서명 없이 영구 URL로 접근 가능 — 캐싱에 유리)
  *
+ * 업로드/삭제는 항상 OCI 원본으로 직접 간다. 읽기 URL({@link #publicUrl})만 별도 설정값
+ * ({@code media.cdn-base-url})을 써서, CDN(Cloudflare)이 앞단에 붙으면 그 도메인으로 바로
+ * 전환할 수 있다 — 설정 안 하면 OCI 원본 엔드포인트로 폴백(application.yaml 참고).
+ *
  * 버킷 리전이 사용자와 물리적으로 멀어(브라질) 왕복 지연이 크므로, 업로드 시점에
  * 리사이징/재압축해서 전송량 자체를 줄인다(긴 변 {@link #MAX_DIMENSION}px, 품질 {@link #JPEG_QUALITY}).
  */
@@ -40,14 +44,14 @@ public class StorageService {
 
     private final S3Client s3Client;
     private final String bucket;
-    private final String endpoint;
+    private final String publicBaseUrl;
 
     public StorageService(S3Client s3Client,
                           @Value("${oci.storage.bucket}") String bucket,
-                          @Value("${oci.storage.endpoint}") String endpoint) {
+                          @Value("${media.cdn-base-url}") String publicBaseUrl) {
         this.s3Client = s3Client;
         this.bucket = bucket;
-        this.endpoint = endpoint;
+        this.publicBaseUrl = publicBaseUrl;
     }
 
     /** 이미지를 (가능하면 리사이징/재압축해서) 업로드하고 객체 키를 반환한다. */
@@ -93,12 +97,15 @@ public class StorageService {
         }
     }
 
-    /** 공개 버킷 객체의 고정 URL을 조립한다(서명/네트워크 호출 없음). key가 null이면 null 반환. */
+    /**
+     * 공개 버킷 객체의 고정 URL을 조립한다(서명/네트워크 호출 없음). key가 null이면 null 반환.
+     * CDN이 설정돼있으면 CDN 도메인, 아니면 OCI 원본 엔드포인트를 기준으로 조립된다({@code media.cdn-base-url}).
+     */
     public String publicUrl(String key) {
         if (key == null) {
             return null;
         }
-        String base = endpoint.endsWith("/") ? endpoint.substring(0, endpoint.length() - 1) : endpoint;
+        String base = publicBaseUrl.endsWith("/") ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1) : publicBaseUrl;
         return base + "/" + bucket + "/" + key;
     }
 
