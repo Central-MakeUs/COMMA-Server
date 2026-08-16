@@ -6,7 +6,6 @@ import com.cmc.comma.domain.checklist.entity.Mood;
 import com.cmc.comma.domain.checklist.entity.TimeBudget;
 import com.cmc.comma.domain.relax.dto.response.RelaxResponse;
 import com.cmc.comma.domain.relax.repository.RelaxRepository;
-import com.cmc.comma.domain.user.entity.User;
 import com.cmc.comma.domain.user.repository.UserRepository;
 import com.cmc.comma.global.exception.CommaException;
 import com.cmc.comma.global.exception.ErrorCode;
@@ -40,29 +39,26 @@ public class RelaxService {
         return relaxRepository.findByMoodAndTimeBudget(mood, timeBudget).stream()
                 .map(relax -> RelaxResponse.of(
                         relax,
-                        activityRepository.countByRelaxIdAndStartedAtAfter(relax.getId(), since),
+                        activityRepository.countDistinctUsersByRelaxIdAndStartedAtAfter(relax.getId(), since),
                         storageService.publicUrl(relax.getImageKey())))
                 .toList();
     }
 
     /**
-     * 최근 1시간 내 접속한 유저 수. 호출한 유저의 lastActiveAt을 갱신한 뒤 집계한다.
+     * 최근 1시간 내 접속한 유저 수. lastActiveAt 갱신은 인증 필터({@link com.cmc.comma.global.auth.jwt.JwtAuthenticationFilter})가
+     * 모든 인증된 요청에 대해 처리하므로, 이 메서드는 순수 조회만 한다(호출 자체는 집계에 영향 없음).
      */
-    @Transactional
-    public long getOnlineCount(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CommaException(ErrorCode.USER_NOT_FOUND));
-        user.updateLastActive();
-        userRepository.flush();
+    @Transactional(readOnly = true)
+    public long getOnlineCount() {
         return userRepository.countByLastActiveAtAfter(LocalDateTime.now().minus(ACTIVE_WINDOW));
     }
 
     /**
-     * 특정 휴식을 최근 1시간 내 시작한 유저 수.
+     * 특정 휴식을 최근 1시간 내 시작한 (중복 없는) 유저 수.
      */
     @Transactional(readOnly = true)
     public long getActiveCount(Long relaxId) {
-        return activityRepository.countByRelaxIdAndStartedAtAfter(
+        return activityRepository.countDistinctUsersByRelaxIdAndStartedAtAfter(
                 relaxId, LocalDateTime.now().minus(ACTIVE_WINDOW));
     }
 
