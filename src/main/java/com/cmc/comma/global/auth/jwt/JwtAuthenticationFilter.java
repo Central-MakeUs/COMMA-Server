@@ -1,6 +1,7 @@
 package com.cmc.comma.global.auth.jwt;
 
 import com.cmc.comma.domain.user.repository.UserRepository;
+import com.cmc.comma.domain.user.service.UserService;
 import com.cmc.comma.global.auth.details.CustomUserDetails;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,6 +23,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
+    private final UserService userService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -35,6 +37,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         new UsernamePasswordAuthenticationToken(
                                 userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                // "1시간 내 접속자 수" 집계용. 인증된 요청이면 뭘 하든 여기를 지나가므로, 특정 화면을
+                // 방문했는지와 무관하게 실제 활동을 반영한다.
+                userService.touchLastActiveIfStale(user);
             });
         }
         filterChain.doFilter(request, response);

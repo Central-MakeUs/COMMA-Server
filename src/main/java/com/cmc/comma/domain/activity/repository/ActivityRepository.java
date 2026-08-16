@@ -12,7 +12,11 @@ import org.springframework.data.jpa.repository.Query;
 public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
     // "N명이 함께하는 중" 집계는 완료 여부와 무관하게 시작(startedAt) 기준 그대로 유지한다.
-    long countByRelaxIdAndStartedAtAfter(Long relaxId, LocalDateTime startedAt);
+    // count(distinct userId): 같은 유저가 재시작(startRelax는 재시작을 막지 않음)해도 한 명으로만 센다 —
+    // Activity row 수를 그대로 세면 한 사람이 여러 번 시작했을 때 여러 명이 하는 것처럼 부풀려진다.
+    @Query("select count(distinct a.userId) from Activity a "
+            + "where a.relaxId = :relaxId and a.startedAt > :startedAt")
+    long countDistinctUsersByRelaxIdAndStartedAtAfter(Long relaxId, LocalDateTime startedAt);
 
     // 정리 배치: 시작만 하고 끝내 완료(피드 작성) 안 된 채로 오래 방치된 활동을 대량 삭제.
     // "함께하는 중" 집계 창(1시간)보다 한참 지난 것만 지우므로 그 집계에는 영향 없다.

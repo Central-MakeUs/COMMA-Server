@@ -18,6 +18,8 @@ import com.cmc.comma.domain.user.repository.UserRepository;
 import com.cmc.comma.global.exception.CommaException;
 import com.cmc.comma.global.exception.ErrorCode;
 import com.cmc.comma.global.storage.StorageService;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,8 @@ public class UserService {
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[가-힣a-zA-Z0-9]{1,10}$");
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
     private static final Pattern PHONE_PATTERN = Pattern.compile("^01[0-9]-?\\d{3,4}-?\\d{4}$");
+    // "1시간 내 접속자 수" 집계용 lastActiveAt 갱신 스로틀 — 인증된 요청마다 부르지만 이 창 안이면 쓰기 생략.
+    private static final Duration LAST_ACTIVE_STALE_AFTER = Duration.ofMinutes(5);
 
     private final UserRepository userRepository;
     private final NicknameGenerator nicknameGenerator;
@@ -44,6 +48,21 @@ public class UserService {
     private final ActivityRepository activityRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final StorageService storageService;
+
+    /**
+     * "1시간 내 접속자 수" 집계용 활동 시각 기록. 인증 필터가 매 요청마다 부르므로, lastActiveAt이
+     * 이미 최근(스로틀 창 이내)이면 DB에 쓰지 않는다 — 어차피 1시간 단위 집계라 몇 분 오차는 무해하고,
+     * 매 요청마다 쓰기가 나가면 부하만 커진다. 이 메서드를 부르는 게 유일한 lastActiveAt 갱신 경로다.
+     */
+    @Transactional
+    public void touchLastActiveIfStale(User user) {
+        LocalDateTime lastActiveAt = user.getLastActiveAt();
+        LocalDateTime now = LocalDateTime.now();
+        if (lastActiveAt != null && lastActiveAt.isAfter(now.minus(LAST_ACTIVE_STALE_AFTER))) {
+            return;
+        }
+        userRepository.updateLastActiveAt(user.getId(), now);
+    }
 
     /**
      * 중복 없는 랜덤 닉네임 추천. 생성 → DB 조회 후 겹치면 재시도.

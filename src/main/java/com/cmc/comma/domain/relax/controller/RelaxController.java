@@ -34,8 +34,7 @@ public class RelaxController {
 
     @GetMapping("/online-count")
     public ResponseEntity<ApiResponse<CountResponse>> onlineCount() {
-        long count = relaxService.getOnlineCount(SecurityUtil.getCurrentUserId());
-        return ResponseEntity.ok(ApiResponse.ok(new CountResponse(count)));
+        return ResponseEntity.ok(ApiResponse.ok(new CountResponse(relaxService.getOnlineCount())));
     }
 
     @GetMapping("/{relaxId}/active-count")
