@@ -1,5 +1,6 @@
 package com.cmc.comma.domain.relax.dto.response;
 
+import com.cmc.comma.domain.relax.entity.MediaType;
 import com.cmc.comma.domain.relax.entity.Relax;
 
 public record RelaxResponse(
@@ -8,6 +9,7 @@ public record RelaxResponse(
         String description,
         String activeMessage,
         String imageUrl,
+        MediaType mediaType,
         long activeUserCount
 ) {
     public static RelaxResponse of(Relax relax, long activeUserCount, String imageUrl) {
@@ -17,6 +19,7 @@ public record RelaxResponse(
                 relax.getDescription(),
                 relax.getActiveMessage(),
                 imageUrl,
+                relax.getMediaType(),
                 activeUserCount
         );
     }

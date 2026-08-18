@@ -47,5 +47,11 @@ public class Relax extends BaseTimeEntity {
     private String activeMessage;
 
     // URL이 아니라 스토리지 객체 key만 저장(Feed와 동일 패턴). 조회 시 공개 URL로 조립한다.
+    // 이름은 imageKey지만 mediaType=VIDEO면 영상 객체 key다(컬럼명까지 바꾸는 마이그레이션은 안 함).
     private String imageKey;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private MediaType mediaType = MediaType.IMAGE;
 }
